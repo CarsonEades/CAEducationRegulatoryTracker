@@ -10,7 +10,7 @@ from tracker.http import Fetcher
 from tracker.models import DocLink, Item, Posting
 from tracker.scrapers import register
 from tracker.scrapers.base import Scraper
-from tracker.scrapers.common import LONG_DATE, clean, is_document, parse_long_date, text
+from tracker.scrapers.common import LONG_DATE, clean, is_document, needs_details, parse_long_date, text
 
 LISTING = "https://www.treasurer.ca.gov/csfa/meeting"
 
@@ -25,7 +25,8 @@ class CSFA(Scraper):
             items: list[Item] = []
             docs = [DocLink(u, label) for label, u in m["links"] if is_document(u)]
             staff = next((u for label, u in m["links"] if "staff report" in label.lower()), None)
-            if staff:
+            partial = not needs_details(m["date"])
+            if staff and not partial:
                 items, staff_docs = self.parse_staff_page(fetcher.get(staff).content, staff)
                 docs += staff_docs
             title = f"CSFA Board Meeting - {m['label']}" + (" (Cancelled)" if m["cancelled"] else "")
@@ -36,6 +37,7 @@ class CSFA(Scraper):
                 url=staff or next((u for _, u in m["links"]), LISTING),
                 items=items,
                 documents=docs,
+                partial=partial,
             ))
         return postings
 

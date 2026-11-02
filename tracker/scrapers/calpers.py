@@ -4,6 +4,7 @@ each of those is one posting."""
 
 from __future__ import annotations
 
+import datetime as dt
 import re
 
 from bs4 import BeautifulSoup, Tag
@@ -12,12 +13,18 @@ from tracker.http import Fetcher
 from tracker.models import DocLink, Item, Posting
 from tracker.scrapers import register
 from tracker.scrapers.base import Scraper
-from tracker.scrapers.common import clean, parse_long_date, text
+from tracker.scrapers.common import clean, needs_details, parse_long_date, text
 
 BASE = "https://www.calpers.ca.gov"
 LISTING = f"{BASE}/about/board/board-meetings"
 RECENT_MONTHS = 2
 MEETING_LINK = re.compile(r"/about/board/board-meetings/([a-z-]+-\d{6})$")
+
+
+def _month_end(yyyymm: str) -> dt.date:
+    """Last day of the month in a page name like 'pension-202609'."""
+    y, m = int(yyyymm[:4]), int(yyyymm[4:])
+    return dt.date(y + m // 12, m % 12 + 1, 1) - dt.timedelta(days=1)
 
 
 @register
@@ -27,6 +34,11 @@ class CalPERS(Scraper):
     def fetch(self, fetcher: Fetcher) -> list[Posting]:
         postings = []
         for url in self.parse_listing(fetcher.get(LISTING).content):
+            key = MEETING_LINK.search(url)[1]
+            month_end = _month_end(key[-6:])
+            if not needs_details(month_end):
+                postings.append(Posting(external_key=key, title=key, url=url, partial=True))
+                continue
             postings.append(self.parse_meeting(fetcher.get(url).content, url))
         return postings
 

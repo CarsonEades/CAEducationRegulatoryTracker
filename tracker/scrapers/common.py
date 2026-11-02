@@ -48,6 +48,17 @@ def parse_long_date(s: str, today: dt.date | None = None) -> dt.date | None:
     return min(candidates, key=lambda d: abs((d - today).days))
 
 
+# Detail pages (meeting agendas, staff reports) are re-read only for meetings
+# that are upcoming or happened within this many days. Listing pages are read
+# every run, so new meetings are still caught right away.
+DETAIL_WINDOW_DAYS = 30
+
+
+def needs_details(date: dt.date | None, today: dt.date | None = None) -> bool:
+    today = today or dt.date.today()
+    return date is None or date >= today - dt.timedelta(days=DETAIL_WINDOW_DAYS)
+
+
 def long_date(d: dt.date) -> str:
     """'October 6, 2026'. (strftime has no portable no-padding day code; Windows lacks it.)"""
     return f"{d:%B} {d.day}, {d.year}"

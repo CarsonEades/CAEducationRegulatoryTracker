@@ -10,7 +10,7 @@ from tracker.http import Fetcher
 from tracker.models import DocLink, Item, Posting
 from tracker.scrapers import register
 from tracker.scrapers.base import Scraper
-from tracker.scrapers.common import clean, is_document, parse_long_date, text
+from tracker.scrapers.common import clean, is_document, needs_details, parse_long_date, text
 
 LISTING = "https://www.fppc.ca.gov/about-fppc/commission-hearings/"
 ITEM_START = re.compile(r"^(\d+)\.\s+(.*)$", re.S)
@@ -23,16 +23,18 @@ class FPPC(Scraper):
     def fetch(self, fetcher: Fetcher) -> list[Posting]:
         postings = []
         for url, label in self.parse_listing(fetcher.get(LISTING).content):
-            items, docs = self.parse_agenda(fetcher.get(url).content, url)
-            postings.append(Posting(
+            p = Posting(
                 # e.g. "2026/oct-2026-agenda"
                 external_key="/".join(url.rstrip("/").lower().rsplit("/", 2)[-2:]),
                 title=f"Commission Hearing - {label}",
                 meeting_date=parse_long_date(label),
                 url=url,
-                items=items,
-                documents=docs,
-            ))
+            )
+            if needs_details(p.meeting_date):
+                p.items, p.documents = self.parse_agenda(fetcher.get(url).content, url)
+            else:
+                p.partial = True
+            postings.append(p)
         return postings
 
     def parse_listing(self, html: bytes) -> list[tuple[str, str]]:

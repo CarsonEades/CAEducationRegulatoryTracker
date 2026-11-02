@@ -194,6 +194,9 @@ def store_posting(conn: psycopg.Connection, fetcher: Fetcher, agency_id: str, p:
         (agency_id, p.external_key),
     ).fetchone()
     posting_id, old_hash = row if row else (None, None)
+    if p.partial and posting_id is not None:
+        conn.execute("update postings set last_seen_at = now() where id = %s", (posting_id,))
+        return "unchanged", posting_id
 
     stored: dict[str, tuple[str | None, str | None]] = {}
     recent: set[str] = set()  # checked within DOC_RECHECK_HOURS

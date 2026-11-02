@@ -32,3 +32,6 @@ class Posting:
     url: str | None = None
     items: list[Item] = field(default_factory=list)
     documents: list[DocLink] = field(default_factory=list)
+    # Listed, but its detail page wasn't re-read this run (an older meeting).
+    # A stored posting is left as it is; a new one is stored from the listing.
+    partial: bool = False

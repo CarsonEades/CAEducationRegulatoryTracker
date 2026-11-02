@@ -14,6 +14,7 @@ from tracker.http import Fetcher
 from tracker.models import DocLink, Item, Posting
 from tracker.scrapers import register
 from tracker.scrapers.base import Scraper
+from tracker.scrapers.common import needs_details
 
 BASE = "https://meetings.ctc.ca.gov"
 # Most recent meetings to check each run (includes upcoming ones).
@@ -34,8 +35,12 @@ class CTC(Scraper):
         postings = []
         for m in resp.json()["Data"]:
             detail_url = f"{BASE}/Details/{m['Id']}"
-            items, docs = self.parse_details(fetcher.get(detail_url).content)
-            postings.append(self.posting(m, detail_url, items, docs))
+            p = self.posting(m, detail_url, [], [])
+            if needs_details(p.meeting_date):
+                p.items, p.documents = self.parse_details(fetcher.get(detail_url).content)
+            else:
+                p.partial = True
+            postings.append(p)
         return postings
 
     @staticmethod

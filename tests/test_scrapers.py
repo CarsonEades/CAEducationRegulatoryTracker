@@ -47,7 +47,8 @@ def test_ag_initiatives():
         "Initiative text (26-0005)", "Official title and summary", "Fiscal Impact Estimate Report"]
 
 
-def test_ctc_meeting_with_items_and_documents():
+def test_ctc_meeting_with_items_and_documents(monkeypatch):
+    monkeypatch.setattr("tracker.scrapers.ctc.needs_details", lambda d: True)
     meetings = json.loads((FIX / "ctc/meetings.json").read_text())
     fetcher = FakeFetcher({f"{BASE}/Details/381": ((FIX / "ctc/details-381.html").read_bytes(), "text/html")})
     fetcher.post = lambda url, **kw: type("R", (), {"json": lambda self: meetings})()
@@ -236,3 +237,24 @@ def test_cpag_listing_and_agenda():
     assert [i.number for i in items] == ["01", "02", "03", "04", "05", "06"]
     assert items[1].title == "California's Differentiated Assistance and Statewide System of Support."
     assert len(docs) == 7 and (docs[2].label, docs[2].item_index) == ("Item 02 Handout (DOCX)", 1)
+
+
+def test_older_meetings_are_listed_without_rereading_their_pages(monkeypatch):
+    from tracker.scrapers import ctc
+
+    meetings = json.loads((FIX / "ctc/meetings.json").read_text())
+    fetcher = FakeFetcher()  # any detail-page request would fail
+    fetcher.post = lambda url, **kw: type("R", (), {"json": lambda self: meetings})()
+    monkeypatch.setattr(ctc, "needs_details", lambda d: False)
+    [p] = ctc.CTC().fetch(fetcher)
+    assert p.partial and not p.items and fetcher.requests == []
+
+
+def test_needs_details_window():
+    from tracker.scrapers.common import needs_details
+
+    today = dt.date(2026, 11, 2)
+    assert needs_details(dt.date(2026, 12, 1), today)      # upcoming
+    assert needs_details(dt.date(2026, 10, 15), today)     # recent
+    assert not needs_details(dt.date(2026, 9, 1), today)   # older than 30 days
+    assert needs_details(None, today)                      # undated: always read

@@ -39,7 +39,7 @@ class BudgetExceeded(FetchError):
 
 
 class Fetcher:
-    def __init__(self, min_interval: float = 1.0, retries: int = 3, timeout: float = 45.0):
+    def __init__(self, min_interval: float = 3.0, retries: int = 3, timeout: float = 45.0):
         self.min_interval = min_interval
         self.retries = retries
         self._last_hit: dict[str, float] = {}

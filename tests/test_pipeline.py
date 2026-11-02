@@ -248,3 +248,14 @@ def test_rarely_checked_agency_waits_between_checks(conn, fetcher, monkeypatch):
     conn.execute("update agencies set last_checked_at = now() - interval '7 hours' where id = 'sbe'")
     pipeline.run(conn, fetcher, ["sbe"], today=TODAY)
     assert calls == [1, 1]
+
+
+def test_partial_listing_leaves_stored_posting_alone(conn, fetcher):
+    mark_succeeded_before(conn)
+    pid = run_once(conn, fetcher, [nov_meeting(documents=[])]).new[0]
+    bare = Posting(external_key="2026-11-05", title="November meeting", partial=True)
+    r = run_once(conn, fetcher, [bare])
+    assert r.unchanged == 1 and not r.updated
+    assert conn.execute("select count(*) from items where posting_id = %s", (pid,)).fetchone()[0] == 2
+    assert conn.execute("select title from postings where id = %s", (pid,)).fetchone()[0] \
+        == "November 5-6, 2026 State Board Meeting"

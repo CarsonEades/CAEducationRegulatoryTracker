@@ -12,7 +12,7 @@ from tracker.http import Fetcher
 from tracker.models import DocLink, Item, Posting
 from tracker.scrapers import register
 from tracker.scrapers.base import Scraper
-from tracker.scrapers.common import is_document, long_date, parse_long_date, short_date, text
+from tracker.scrapers.common import is_document, long_date, needs_details, parse_long_date, short_date, text
 
 BASE = "https://www.calstrs.com"
 LISTING = f"{BASE}/board-meetings"
@@ -27,6 +27,11 @@ class CalSTRS(Scraper):
     def fetch(self, fetcher: Fetcher) -> list[Posting]:
         postings = []
         for url, date in self.parse_listing(fetcher.get(LISTING).content):
+            if not needs_details(date):
+                postings.append(Posting(external_key=url.rsplit("/", 1)[-1],
+                                        title=f"Teachers' Retirement Board Meeting - {long_date(date)}",
+                                        meeting_date=date, url=url, partial=True))
+                continue
             title, items, docs = self.parse_meeting(fetcher.get(url).content, url)
             postings.append(Posting(
                 external_key=url.rsplit("/", 1)[-1],
