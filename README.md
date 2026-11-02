@@ -25,15 +25,15 @@ GitHub Actions (every 2h) ──► Python scrapers ──► Supabase Postgres 
 | CCEE | Yes | Via the site's public WordPress API (the HTML page is behind Cloudflare) |
 | State Board of Education | Yes, paced | One page per run from an office computer; see below |
 | Advisory Commission on Charter Schools | Yes, paced | Same site as SBE |
-| California Practitioners Advisory Group | Not yet | Same site as SBE; its agenda page is behind CDE's firewall, so it couldn't be fetched to build against |
+| California Practitioners Advisory Group | Yes, paced | Same site and approach as SBE |
 | FCC Open Commission Meetings | Yes | Via the Federal Register API (fcc.gov denies automated requests); the notice PDF is searched |
 | Educational Audit Appeals Panel | Yes, every 6 hours | Behind Cloudflare, which allows occasional requests; reports name appealing districts and charter schools |
 
 Agencies that aren't automated show in the dashboard as "Not automated yet: check by hand".
 
-**cde.ca.gov (SBE, ACCS):** the site's bot protection (Radware) lets an
+**cde.ca.gov (SBE, ACCS, CPAG):** the site's bot protection (Radware) lets an
 occasional request through but challenges several in a row, and challenges
-GitHub's servers outright. So SBE and ACCS are checked from an office computer
+GitHub's servers outright. So SBE, ACCS and CPAG are checked from an office computer
 (a self-hosted GitHub runner; set the repository variable `USE_OFFICE_RUNNER`
 to `true`), one page per run: meeting lists first, then new agenda pages, then
 re-checks of upcoming agendas. Agenda pages include each item's subject, which

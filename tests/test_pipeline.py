@@ -192,8 +192,9 @@ def test_full_text_search(conn, fetcher):
     assert conn.execute("select count(*) from search_all('facilities', 'calpers')").fetchone()[0] == 0
 
 
-def test_run_skips_agencies_without_scrapers(conn, fetcher):
-    results = pipeline.run(conn, fetcher, ["cpag"], today=TODAY)
+def test_run_skips_agencies_without_scrapers(conn, fetcher, monkeypatch):
+    monkeypatch.setattr(pipeline, "get_scraper", lambda agency_id: None)
+    results = pipeline.run(conn, fetcher, ["fppc"], today=TODAY)
     assert results[0].skipped and results[0].error == "scraper not built yet"
 
 

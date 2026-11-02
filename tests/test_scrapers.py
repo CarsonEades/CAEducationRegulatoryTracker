@@ -223,3 +223,16 @@ def test_eaap_meetings_and_reports():
     assert [d.label for d in p.documents][:3] == [
         "Agenda", "Summary Review Report 10-9-2026", "Formal Appeals Report 10-9-2026"]
     assert postings[-1].meeting_date == dt.date(2025, 10, 27)
+
+
+def test_cpag_listing_and_agenda():
+    from tracker.scrapers.cde import CPAG, parse_agenda_page
+
+    listing = CPAG().parse_listing((FIX / "cpag/cpag2026agendas.html").read_bytes())
+    assert [(k, label) for k, _, label, _ in listing] == [
+        ("cpag2026agendajun", "June 12, 2026"), ("cpag2026agendamar", "March 27, 2026")]
+    assert listing[0][1] == "https://www.cde.ca.gov/be/cc/cp/cpag2026agendajun.asp"
+    items, docs = parse_agenda_page((FIX / "cpag/cpag-june2026-agenda.html").read_bytes(), listing[0][1])
+    assert [i.number for i in items] == ["01", "02", "03", "04", "05", "06"]
+    assert items[1].title == "California's Differentiated Assistance and Statewide System of Support."
+    assert len(docs) == 7 and (docs[2].label, docs[2].item_index) == ("Item 02 Handout (DOCX)", 1)

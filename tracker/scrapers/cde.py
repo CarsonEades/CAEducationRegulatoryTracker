@@ -24,7 +24,7 @@ BASE = "https://www.cde.ca.gov"
 RECENT = 2  # agenda pages read per run
 
 ITEM_HEADER = re.compile(r"^Item\s+([A-Z]{0,2}-?\d+[A-Za-z]?)\b(?!.*Attachment)(.*)$")
-STOP = re.compile(r"^(Type\s+of\s+Action|Item\s+\S+|Return to Top|Public Comment|\*+$|\()", re.I)
+STOP = re.compile(r"^(Type\s+of\s+Action|Revision\s+Notes|Item\s+\S+|Return to Top|Public Comment|\*+$|\()", re.I)
 
 
 def parse_agenda_page(html: bytes, url: str) -> tuple[list[Item], list[DocLink]]:
@@ -51,7 +51,7 @@ def parse_agenda_page(html: bytes, url: str) -> tuple[list[Item], list[DocLink]]
             while j < len(lines) and not STOP.match(lines[j]):
                 parts.append(lines[j])
                 j += 1
-            subject = clean(" ".join(parts))
+            subject = re.sub(r"\s+([.,;:])", r"\1", clean(" ".join(parts)))
             if subject and items[current].title.startswith("Item "):
                 items[current].title = subject
             i = j
@@ -131,4 +131,25 @@ class ACCS(_CDEAgency):
             if m and date:
                 label = long_date(date) + (" (Canceled)" if "cancel" in text.lower() else "")
                 found[m[1]] = (m[1], Scraper.absolute(self.listing_url, a["href"]), label, date)
+        return sorted(found.values(), key=lambda r: r[3], reverse=True)
+
+
+@register
+class CPAG(_CDEAgency):
+    agency_id = "cpag"
+    # One list page per year. (Early in January, before CDE creates the new
+    # year's page, this fails until it exists.)
+    listing_url = f"{BASE}/be/cc/cp/cpag{dt.date.today().year}agendas.asp"
+    title_prefix = "California Practitioners Advisory Group Meeting"
+
+    def parse_listing(self, html):
+        soup = BeautifulSoup(html, "html.parser")
+        content = soup.find(id="content") or soup
+        found = {}
+        for a in content.find_all("a", href=True):
+            m = re.search(r"(cpag\d{4}agenda\w+)\.asp$", a["href"])
+            text = clean(a.get_text(" "))
+            date = parse_long_date(text)
+            if m and date:
+                found[m[1]] = (m[1], Scraper.absolute(self.listing_url, a["href"]), long_date(date), date)
         return sorted(found.values(), key=lambda r: r[3], reverse=True)

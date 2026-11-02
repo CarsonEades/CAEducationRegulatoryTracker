@@ -1,5 +1,5 @@
-"""Paced checking of cde.ca.gov (State Board of Education and the Advisory
-Commission on Charter Schools).
+"""Paced checking of cde.ca.gov (State Board of Education, the Advisory
+Commission on Charter Schools, and the California Practitioners Advisory Group).
 
 cde.ca.gov's bot protection lets an occasional request through but challenges
 several in a row. So each run reads at most a few pages (one by default), taken
@@ -40,12 +40,12 @@ from psycopg.types.json import Jsonb
 
 from tracker.http import BlockedError, Fetcher, FetchError
 from tracker.models import Posting
-from tracker.scrapers.cde import ACCS, SBE, parse_agenda_page
+from tracker.scrapers.cde import ACCS, CPAG, SBE, parse_agenda_page
 
 log = logging.getLogger(__name__)
 
 HOST = "www.cde.ca.gov"
-CDE_AGENCIES = {"sbe": SBE, "accs": ACCS}
+CDE_AGENCIES = {"sbe": SBE, "accs": ACCS, "cpag": CPAG}
 STATE_KEY = "cde"
 RECENT_MEETINGS = 2           # agenda pages tracked per agency
 LISTING_REFRESH_HOURS = 6

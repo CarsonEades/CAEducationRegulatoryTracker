@@ -17,7 +17,7 @@ on:
         options: [default, office, cloud]
         default: default
 
-# cde.ca.gov (SBE, ACCS) has challenged requests from GitHub's servers, so those
+# cde.ca.gov (SBE, ACCS, CPAG) has challenged requests from GitHub's servers, so those
 # agencies can be checked from an office computer running a self-hosted GitHub
 # runner: set the repository variable USE_OFFICE_RUNNER to "true" once the
 # runner is installed. CDE is read one page per run; see tracker/paced.py for
@@ -28,7 +28,7 @@ on:
 # "cloud", the office job doesn't run and GitHub's servers check CDE. Both
 # share one pacing queue in the database.
 env:
-  OFFICE_AGENCIES: ${{ vars.OFFICE_AGENCIES || 'sbe,accs' }}
+  OFFICE_AGENCIES: ${{ vars.OFFICE_AGENCIES || 'sbe,accs,cpag' }}
   CDE_MIN_GAP_MINUTES: ${{ vars.CDE_MIN_GAP_MINUTES }}
   CDE_PAGES_PER_RUN: ${{ vars.CDE_PAGES_PER_RUN }}
   CDE_PAGE_GAP_SECONDS: ${{ vars.CDE_PAGE_GAP_SECONDS }}
