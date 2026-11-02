@@ -210,3 +210,16 @@ def test_no_platform_specific_date_formats():
     root = Path(__file__).parent.parent / "tracker"
     offenders = [str(p) for p in root.rglob("*.py") if "%-d" in p.read_text()]
     assert offenders == []
+
+
+def test_eaap_meetings_and_reports():
+    from tracker.scrapers.eaap import EAAP
+
+    postings = EAAP().parse((FIX / "eaap/agendas.html").read_bytes(), today=dt.date(2026, 11, 2))
+    assert len(postings) == 7  # about a year of meetings
+    p = postings[0]
+    assert (p.title, p.meeting_date) == ("EAAP Meeting - October 19, 2026", dt.date(2026, 10, 19))
+    assert p.url.endswith("/Agenda-10-19-2026.pdf")
+    assert [d.label for d in p.documents][:3] == [
+        "Agenda", "Summary Review Report 10-9-2026", "Formal Appeals Report 10-9-2026"]
+    assert postings[-1].meeting_date == dt.date(2025, 10, 27)

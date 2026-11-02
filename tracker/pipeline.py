@@ -26,6 +26,9 @@ MAX_DOCS_PER_POSTING = 200
 # always fetched right away; this just avoids re-downloading every PDF of a
 # large meeting (CalSTRS posts 100+) on each run.
 DOC_RECHECK_HOURS = 12
+# Agencies whose sites limit automated requests and that meet rarely are checked
+# at most this often (hours), whether the last check succeeded or not.
+CHECK_EVERY_HOURS = {"eaap": 6}
 # This many failed runs in a row flags an agency in the dashboard and emails an admin.
 FAILURE_ALERT_THRESHOLD = 3
 
@@ -88,6 +91,13 @@ def run(conn: psycopg.Connection, fetcher: Fetcher, agency_ids: list[str] | None
         if scraper is None:
             results.append(AgencyResult(agency_id, ok=False, skipped=True,
                                         error="scraper not built yet"))
+            continue
+        hours = CHECK_EVERY_HOURS.get(agency_id)
+        if hours and conn.execute(
+                """select last_checked_at > now() - make_interval(hours => %s)
+                   from agencies where id = %s""", (hours, agency_id)).fetchone()[0]:
+            results.append(AgencyResult(agency_id, ok=True, skipped=True,
+                                        note=f"checked at most every {hours} hours (the site limits automated requests)"))
             continue
         results.append(run_agency(conn, fetcher, agency_id, scraper.fetch, today))
     return results

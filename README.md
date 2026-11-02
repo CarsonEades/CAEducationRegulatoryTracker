@@ -25,9 +25,9 @@ GitHub Actions (every 2h) ──► Python scrapers ──► Supabase Postgres 
 | CCEE | Yes | Via the site's public WordPress API (the HTML page is behind Cloudflare) |
 | State Board of Education | Yes, paced | One page per run from an office computer; see below |
 | Advisory Commission on Charter Schools | Yes, paced | Same site as SBE |
-| California Practitioners Advisory Group | Not yet | Same site; page couldn't be fetched to build against |
+| California Practitioners Advisory Group | Not yet | Same site as SBE; its agenda page is behind CDE's firewall, so it couldn't be fetched to build against |
 | FCC Open Commission Meetings | Yes | Via the Federal Register API (fcc.gov denies automated requests); the notice PDF is searched |
-| Educational Audit Appeals Panel | Not yet | Behind Cloudflare with no public feed: check by hand |
+| Educational Audit Appeals Panel | Yes, every 6 hours | Behind Cloudflare, which allows occasional requests; reports name appealing districts and charter schools |
 
 Agencies that aren't automated show in the dashboard as "Not automated yet: check by hand".
 

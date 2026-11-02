@@ -193,7 +193,7 @@ def test_full_text_search(conn, fetcher):
 
 
 def test_run_skips_agencies_without_scrapers(conn, fetcher):
-    results = pipeline.run(conn, fetcher, ["eaap"], today=TODAY)
+    results = pipeline.run(conn, fetcher, ["cpag"], today=TODAY)
     assert results[0].skipped and results[0].error == "scraper not built yet"
 
 
@@ -228,3 +228,22 @@ def test_nul_characters_in_text_are_dropped(conn, fetcher):
     assert conn.execute("select text from documents where posting_id = %s", (pid,)).fetchone()[0] == "charter report"
     assert conn.execute("select title from items where posting_id = %s and position = 0",
                         (pid,)).fetchone()[0] == "Approval of minutes"
+
+
+def test_rarely_checked_agency_waits_between_checks(conn, fetcher, monkeypatch):
+    monkeypatch.setattr(pipeline, "CHECK_EVERY_HOURS", {"sbe": 6})
+    calls = []
+
+    class Fake:
+        def fetch(self, f):
+            calls.append(1)
+            return [nov_meeting(documents=[])]
+
+    monkeypatch.setattr(pipeline, "get_scraper", lambda a: Fake())
+    monkeypatch.setattr("tracker.paced.CDE_AGENCIES", {})
+    pipeline.run(conn, fetcher, ["sbe"], today=TODAY)
+    r = pipeline.run(conn, fetcher, ["sbe"], today=TODAY)[0]
+    assert calls == [1] and r.skipped and "every 6 hours" in r.note
+    conn.execute("update agencies set last_checked_at = now() - interval '7 hours' where id = 'sbe'")
+    pipeline.run(conn, fetcher, ["sbe"], today=TODAY)
+    assert calls == [1, 1]
