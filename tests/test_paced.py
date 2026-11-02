@@ -111,13 +111,27 @@ def test_pages_per_run_setting(conn, cde_fetcher, monkeypatch):
     assert waits == [90, 90]
 
 
-def test_acceptance_by_gap(conn):
-    t0 = dt.datetime(2026, 10, 1, tzinfo=dt.timezone.utc)
+def test_acceptance_by_gap_split_by_origin(conn):
     now = dt.datetime.now(dt.timezone.utc)
-    for gap, outcome in [(30, "challenged"), (8, "challenged"), (7200, "ok"), (7300, "ok"), (8000, "challenged")]:
-        conn.execute("""insert into crawl_log (host, url, requested_at, gap_seconds, outcome)
-                        values ('www.cde.ca.gov', 'u', %s, %s, %s)""", (now, gap, outcome))
-    assert paced.acceptance_by_gap(conn) == [("under 1 min", 0, 2), ("1-3 h", 2, 1)]
+    for gap, outcome, where in [(30, "challenged", "office"), (8, "challenged", "office"),
+                                (7200, "ok", "office"), (7300, "ok", "github"),
+                                (8000, "challenged", "github"), (21000, "ok", None)]:
+        conn.execute("""insert into crawl_log (host, url, requested_at, gap_seconds, outcome, origin)
+                        values ('www.cde.ca.gov', 'u', %s, %s, %s, %s)""", (now, gap, outcome, where))
+    # Rows logged before origins were recorded all came from the office computer.
+    assert paced.acceptance_by_gap(conn) == [
+        ("GitHub's servers", "1-3 h", 1, 1),
+        ("the office computer", "under 1 min", 0, 2),
+        ("the office computer", "1-3 h", 1, 0),
+        ("the office computer", "3-12 h", 1, 0),
+    ]
+
+
+def test_origin_is_logged_and_shown(conn, cde_fetcher, monkeypatch):
+    monkeypatch.setenv("TRACKER_ORIGIN", "github")
+    r = run(conn, cde_fetcher, Clock())["sbe"]
+    assert "from GitHub's servers" in r.note
+    assert conn.execute("select origin from crawl_log").fetchone()[0] == "github"
 
 
 def test_migrations_apply_on_top_of_hand_applied_schema(conn):
@@ -127,8 +141,11 @@ def test_migrations_apply_on_top_of_hand_applied_schema(conn):
     # nothing recorded, later ones not applied yet.
     conn.execute("drop table crawl_log, crawl_state")
     conn.commit()
-    assert migrate(conn) == ["20261031000001_paced_crawling.sql"]
+    conn.execute("drop table if exists schema_migrations")
+    conn.commit()
+    assert migrate(conn) == ["20261031000001_paced_crawling.sql", "20261102000001_crawl_log_origin.sql"]
     names = {r[0] for r in conn.execute("select name from schema_migrations")}
-    assert names == {"20261030000001_init.sql", "20261031000001_paced_crawling.sql"}
+    assert names == {"20261030000001_init.sql", "20261031000001_paced_crawling.sql",
+                     "20261102000001_crawl_log_origin.sql"}
     assert migrate(conn) == []
     assert conn.execute("select to_regclass('public.crawl_log') is not null").fetchone()[0]

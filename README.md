@@ -44,6 +44,12 @@ variables: `CDE_MIN_GAP_MINUTES` (default 100), `CDE_PAGES_PER_RUN` (default 1)
 and `CDE_PAGE_GAP_SECONDS` (default 90). A challenge pauses CDE checks for 2
 hours, doubling with each further challenge up to 24 hours.
 
+To test whether GitHub's servers can check CDE instead, choose **cloud** for
+"Where to check CDE" when running the workflow by hand (one run), or set the
+repository variable `CDE_RUNNER` to `cloud` (every run; the office job then
+doesn't run). Each logged request records where it came from, and the run
+summary splits acceptance by origin.
+
 ## How it behaves
 
 - **New / Updated since review / Reviewed:** review status is shared across the team. If a

@@ -11,12 +11,22 @@ on:
       agency:
         description: "Only this agency id (e.g. sbe). Leave blank for all."
         required: false
+      cde_runner:
+        description: "Where to check CDE (SBE, ACCS) this run. 'default' follows the CDE_RUNNER variable."
+        type: choice
+        options: [default, office, cloud]
+        default: default
 
-# cde.ca.gov (SBE, ACCS) challenges requests from cloud data centers such as
-# GitHub's, so those agencies can be checked from an office computer running a
-# self-hosted GitHub runner: set the repository variable USE_OFFICE_RUNNER to
-# "true" once the runner is installed. CDE is read one page per run; see
-# tracker/paced.py for the CDE_* pacing variables.
+# cde.ca.gov (SBE, ACCS) has challenged requests from GitHub's servers, so those
+# agencies can be checked from an office computer running a self-hosted GitHub
+# runner: set the repository variable USE_OFFICE_RUNNER to "true" once the
+# runner is installed. CDE is read one page per run; see tracker/paced.py for
+# the CDE_* pacing variables.
+#
+# Where CDE is checked: the repository variable CDE_RUNNER ("office", the
+# default, or "cloud"), or for a single manual run the cde_runner input. With
+# "cloud", the office job doesn't run and GitHub's servers check CDE. Both
+# share one pacing queue in the database.
 env:
   OFFICE_AGENCIES: ${{ vars.OFFICE_AGENCIES || 'sbe,accs' }}
   CDE_MIN_GAP_MINUTES: ${{ vars.CDE_MIN_GAP_MINUTES }}
@@ -48,11 +58,13 @@ jobs:
           DASHBOARD_URL: ${{ vars.DASHBOARD_URL }}
           TRACKER_USER_AGENT: ${{ vars.TRACKER_USER_AGENT }}
           AGENCY: ${{ inputs.agency }}
-          EXCLUDE: ${{ vars.USE_OFFICE_RUNNER == 'true' && env.OFFICE_AGENCIES || '' }}
+          TRACKER_ORIGIN: github
+          # Leave CDE to the office job unless CDE is set to run here.
+          EXCLUDE: ${{ vars.USE_OFFICE_RUNNER == 'true' && !(inputs.cde_runner == 'cloud' || (inputs.cde_runner != 'office' && vars.CDE_RUNNER == 'cloud')) && env.OFFICE_AGENCIES || '' }}
         run: python -m tracker run ${AGENCY:+--agency "$AGENCY"} --exclude "$EXCLUDE"
 
   office:
-    if: vars.USE_OFFICE_RUNNER == 'true'
+    if: vars.USE_OFFICE_RUNNER == 'true' && !(inputs.cde_runner == 'cloud' || (inputs.cde_runner != 'office' && vars.CDE_RUNNER == 'cloud'))
     runs-on: self-hosted
     timeout-minutes: 60
     concurrency:
@@ -76,4 +88,5 @@ jobs:
           DASHBOARD_URL: ${{ vars.DASHBOARD_URL }}
           TRACKER_USER_AGENT: ${{ vars.TRACKER_USER_AGENT }}
           PYTHONIOENCODING: utf-8
+          TRACKER_ORIGIN: office
         run: ${{ runner.os == 'Windows' && '.venv\Scripts\python.exe' || '.venv/bin/python' }} -m tracker run --agencies "${{ env.OFFICE_AGENCIES }}"

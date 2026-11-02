@@ -116,14 +116,24 @@ def save_state(conn, state: dict) -> None:
     )
 
 
+def origin() -> str:
+    """Where this run is happening: 'github', 'office', or 'local' (set by the workflow)."""
+    return os.environ.get("TRACKER_ORIGIN", "").strip() or "local"
+
+
+ORIGIN_NAMES = {"github": "GitHub's servers", "office": "the office computer", "local": "a local run"}
+
+
 def _log_request(conn, url: str, now: dt.datetime, outcome: str, detail: str | None) -> int | None:
+    # Spacing is measured from the previous request from anywhere: CDE sees
+    # them all, and both runners share one pacing queue.
     prev = conn.execute(
         "select max(requested_at) from crawl_log where host = %s", (HOST,)).fetchone()[0]
     gap = int((now - prev).total_seconds()) if prev else None
     conn.execute(
-        """insert into crawl_log (host, url, requested_at, gap_seconds, outcome, detail)
-           values (%s, %s, %s, %s, %s, %s)""",
-        (HOST, url, now, gap, outcome, detail),
+        """insert into crawl_log (host, url, requested_at, gap_seconds, outcome, detail, origin)
+           values (%s, %s, %s, %s, %s, %s, %s)""",
+        (HOST, url, now, gap, outcome, detail, origin()),
     )
     return gap
 
@@ -243,10 +253,11 @@ def run_cde(conn: psycopg.Connection, fetcher: Fetcher, agency_ids: list[str],
 
 
 def _gap_text(gap: int | None) -> str:
-    """'90s after the previous CDE request', or 'the first logged CDE request'."""
+    """'90s after the previous CDE request, from GitHub's servers'."""
+    where = ORIGIN_NAMES.get(origin(), origin())
     if gap is None:
-        return "the first logged CDE request"
-    return f"{_duration(gap)} after the previous CDE request"
+        return f"the first logged CDE request, from {where}"
+    return f"{_duration(gap)} after the previous CDE request, from {where}"
 
 
 def _duration(gap: int) -> str:
@@ -261,17 +272,18 @@ GAP_BUCKETS = [(0, 60, "under 1 min"), (60, 600, "1-10 min"), (600, 3600, "10-60
                (3600, 3 * 3600, "1-3 h"), (3 * 3600, 12 * 3600, "3-12 h"), (12 * 3600, None, "12 h+")]
 
 
-def acceptance_by_gap(conn, days: int = 14) -> list[tuple[str, int, int]]:
-    """(spacing bucket, accepted, challenged) for recent CDE requests."""
+def acceptance_by_gap(conn, days: int = 14) -> list[tuple[str, str, int, int]]:
+    """(origin, spacing bucket, accepted, challenged) for recent CDE requests."""
     rows = conn.execute(
-        """select gap_seconds, outcome from crawl_log
+        """select coalesce(origin, 'office'), gap_seconds, outcome from crawl_log
            where host = %s and requested_at > now() - make_interval(days => %s)
              and outcome in ('ok', 'challenged') and gap_seconds is not null""",
         (HOST, days),
     ).fetchall()
     out = []
-    for lo, hi, label in GAP_BUCKETS:
-        sel = [o for g, o in rows if g >= lo and (hi is None or g < hi)]
-        if sel:
-            out.append((label, sel.count("ok"), sel.count("challenged")))
+    for where in sorted({r[0] for r in rows}):
+        for lo, hi, label in GAP_BUCKETS:
+            sel = [o for w, g, o in rows if w == where and g >= lo and (hi is None or g < hi)]
+            if sel:
+                out.append((ORIGIN_NAMES.get(where, where), label, sel.count("ok"), sel.count("challenged")))
     return out

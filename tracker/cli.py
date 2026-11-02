@@ -100,9 +100,10 @@ def write_step_summary(results, conn=None) -> None:
     if conn is not None and any(r.agency_id in paced.CDE_AGENCIES for r in results):
         stats = paced.acceptance_by_gap(conn)
         if stats:
-            lines += ["", "**cde.ca.gov requests, last 14 days, by time since the previous request**", "",
-                      "| Spacing | Accepted | Challenged |", "|---|---|---|"]
-            lines += [f"| {label} | {ok} | {bad} |" for label, ok, bad in stats]
+            lines += ["", "**cde.ca.gov requests, last 14 days, by where they came from and time since "
+                      "the previous request**", "",
+                      "| From | Spacing | Accepted | Challenged |", "|---|---|---|---|"]
+            lines += [f"| {where} | {label} | {ok} | {bad} |" for where, label, ok, bad in stats]
     with open(path, "a", encoding="utf-8") as f:
         f.write("\n".join(lines) + "\n")
 
