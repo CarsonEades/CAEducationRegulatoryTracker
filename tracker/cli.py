@@ -118,8 +118,9 @@ def annotate_failures(results) -> None:
             msg = (r.error or "unknown error").replace("\r", " ").replace("\n", " ")[:500]
             level = "warning" if r.backing_off else "error"
             print(f"::{level} title={r.agency_id} {'backing off' if r.backing_off else 'failed'}::{msg}", flush=True)
-        elif r.ok and not r.skipped and r.note:
-            print(f"::notice title={r.agency_id}::{r.note}", flush=True)  # e.g. paced CDE reads
+        elif r.note:
+            # Paced CDE reads, and why an agency was skipped (spacing, backoff).
+            print(f"::notice title={r.agency_id}::{r.note}", flush=True)
 
 
 def preview(fetcher: Fetcher, agency_ids: list[str]) -> int:
