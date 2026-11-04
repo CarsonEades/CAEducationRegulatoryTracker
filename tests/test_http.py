@@ -10,7 +10,7 @@ def make_fetcher(handler, monkeypatch, budgets=None):
     monkeypatch.setattr(http, "HOST_INTERVALS", {})
     f = Fetcher(min_interval=0)
     f.client = httpx.Client(transport=httpx.MockTransport(handler), follow_redirects=True,
-                            event_hooks={"response": [f._check_challenge]})
+                            event_hooks={"response": [f._on_response]})
     return f
 
 
@@ -44,3 +44,26 @@ def test_empty_user_agent_setting_falls_back_to_default(monkeypatch):
     assert http.user_agent().startswith("CA-Education-Agency-Tracker/")
     monkeypatch.setenv("TRACKER_USER_AGENT", "Our Org Tracker (ops@example.org)")
     assert http.user_agent() == "Our Org Tracker (ops@example.org)"
+
+
+def test_cde_requests_are_traced_with_cookie_names_only(monkeypatch):
+    def handler(req):
+        if req.url.host != "www.cde.ca.gov":
+            return httpx.Response(200, text="ok")
+        if req.url.path == "/first.asp":
+            return httpx.Response(200, text="<script src='https://x.perfdrive.com/a.js'></script>",
+                                  headers=[("set-cookie", "__uzma=secret1; Path=/"),
+                                           ("set-cookie", "__uzmb=secret2; Path=/")])
+        return httpx.Response(302, headers={"location": "https://validate.perfdrive.com/?ssa=1"})
+
+    f = make_fetcher(handler, monkeypatch)
+    resp = f.get("https://www.cde.ca.gov/first.asp")
+    assert f.trace_text() == "HTTP 200; cookies sent: none; set: __uzma, __uzmb"
+    assert http.bot_markers(resp.content) == ["perfdrive"]
+    with pytest.raises(BlockedError):
+        f.get("https://www.cde.ca.gov/second.asp")
+    assert f.trace_text() == ("HTTP 302 (redirect to validate.perfdrive.com); "
+                              "cookies sent: __uzma, __uzmb; set: none")
+    assert "secret" not in f.trace_text()
+    f.get("https://oag.ca.gov/x")  # other hosts aren't traced
+    assert f.trace_text().startswith("HTTP 302")

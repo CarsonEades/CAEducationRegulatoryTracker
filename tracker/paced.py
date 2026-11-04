@@ -248,13 +248,15 @@ def run_cde(conn: psycopg.Connection, fetcher: Fetcher, agency_ids: list[str],
         except BudgetExceeded:
             break  # this run's request allowance is used up; the rest waits for the next run
         except BlockedError as e:
-            gap = _log_request(conn, task.url, t, "challenged", str(e)[:500])
+            diag = _diagnostics(fetcher)
+            gap = _log_request(conn, task.url, t, "challenged", f"{e}; {diag}"[:500])
             state["challenges"] = state.get("challenges", 0) + 1
             backoff = min(BACKOFF_START * 2 ** (state["challenges"] - 1), BACKOFF_MAX)
             state["backoff_until"] = (t + backoff).isoformat()
             failures = _mark_failure(conn, task.agency_id, f"CDE challenged the request; retrying after {backoff}")
             results[task.agency_id] = AgencyResult(
-                task.agency_id, ok=False, error=f"challenged by CDE bot protection ({_gap_text(gap)}); backing off {backoff}",
+                task.agency_id, ok=False,
+                error=f"challenged by CDE bot protection ({_gap_text(gap)}){_bracket(_describe_task(task), diag)}; backing off {backoff}",
                 consecutive_failures=failures, backing_off=True)
             break
         except FetchError as e:
@@ -275,7 +277,8 @@ def run_cde(conn: psycopg.Connection, fetcher: Fetcher, agency_ids: list[str],
             conn.commit()
             break
 
-        gap = _log_request(conn, task.url, t, "ok", None)
+        diag = _diagnostics(fetcher, None if task.kind == "document" else resp.content)
+        gap = _log_request(conn, task.url, t, "ok", diag or None)
         state["challenges"] = 0
         state.pop("backoff_until", None)
         state.pop("next_allowed_at", None)  # saved by earlier versions
@@ -284,7 +287,7 @@ def run_cde(conn: psycopg.Connection, fetcher: Fetcher, agency_ids: list[str],
         r.skipped = False
         if task.kind == "document":
             what, flagged = _store_document(conn, task, resp, today)
-            _add_note(r, f"{what} ({_gap_text(gap)})")
+            _add_note(r, f"{what} ({_gap_text(gap)}){_bracket(diag)}")
             if flagged:
                 r.updated.append(task.doc[1])
             else:
@@ -300,7 +303,7 @@ def run_cde(conn: psycopg.Connection, fetcher: Fetcher, agency_ids: list[str],
                 # except upcoming ones.
                 state.setdefault("initial", {})[task.agency_id] = [m[0] for m in meetings]
             _mark_success(conn, task.agency_id, len(meetings))
-            _add_note(r, f"read the meeting list ({len(meetings)} meetings; {_gap_text(gap)})")
+            _add_note(r, f"read the meeting list ({len(meetings)} meetings; {_gap_text(gap)}){_bracket(diag)}")
         else:
             key, url, label, iso = task.meeting
             date = dt.date.fromisoformat(iso) if iso else None
@@ -321,13 +324,35 @@ def run_cde(conn: psycopg.Connection, fetcher: Fetcher, agency_ids: list[str],
                 r.updated.append(pid)
             else:
                 r.unchanged += 1
-            _add_note(r, f"read the {label} agenda ({len(items)} items; {_gap_text(gap)})")
+            _add_note(r, f"read the {label} agenda ({len(items)} items; {_gap_text(gap)}){_bracket(diag)}")
         save_state(conn, state)
         conn.commit()
 
     save_state(conn, state)
     conn.commit()
     return list(results.values())
+
+
+def _diagnostics(fetcher, page: bytes | None = None) -> str:
+    """Temporary: what CDE's response looked like (status, redirects, cookie
+    names sent and set, bot-protection script markers in a page), to work out
+    why a second page in a run gets challenged."""
+    from tracker.http import bot_markers
+
+    text = getattr(fetcher, "trace_text", lambda: "")()
+    if page is not None:
+        found = bot_markers(page)
+        text += f"; page markers: {', '.join(found) if found else 'none'}"
+    return text.lstrip("; ")
+
+
+def _bracket(*parts: str) -> str:
+    text = "; ".join(p for p in parts if p)
+    return f" [{text}]" if text else ""
+
+
+def _describe_task(task: "Task") -> str:
+    return {"listing": "meeting list", "agenda": "agenda page"}.get(task.kind, "document")
 
 
 def _add_note(r, text: str) -> None:

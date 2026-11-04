@@ -246,6 +246,18 @@ GitHub Actions (cron) → Python scrapers → Supabase Postgres ← React dashbo
 
 ## Open items and ideas
 
+- **Diagnosing CDE's second-page challenges (started Nov 4).** In every accepted multi-request
+  run so far, at most one request was an HTML page (meeting list or agenda); the rest were
+  documents. Both challenged runs (Nov 4, 14:13 and 17:52 UTC) were a meeting list followed by
+  another meeting list, challenged at 26s and at 62s, so the spacing doesn't seem to matter.
+  Theory: Radware checks HTML pages, lets the first through, and expects its browser script to
+  have run before the next one. To check it, each CDE request's note (and `crawl_log.detail`)
+  now records the status, redirects, cookie *names* sent and set, and, for pages, whether
+  Radware's script markers appear (`_diagnostics` in `paced.py`, tracing in `http.py`).
+  If the first page sets Radware cookies and the challenged second page sends them back, the
+  planned fix is at most one HTML page per run, with any further pages being documents. Remove
+  the diagnostics once that's settled.
+
 - Confirm the rename follow-ups above are done.
 - **Watch for CDE challenges at 10 pages and 60s** (set Nov 4). If they continue, back off
   further (e.g. 5 pages at 90s). After a week or more without challenges, the pace can move
