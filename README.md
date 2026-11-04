@@ -26,7 +26,7 @@ For the history of decisions, current settings and known pitfalls, see
 | CalPERS | Yes | Committee agenda pages for the two latest months |
 | CalSTRS | Yes | All committees of each board meeting |
 | CCEE | Yes | Via the site's public WordPress API (the HTML page is behind Cloudflare) |
-| State Board of Education | Yes, paced | One page per run from an office computer; see below |
+| State Board of Education | Yes, paced | Requests spaced out to suit the site's bot protection; see below |
 | Advisory Commission on Charter Schools | Yes, paced | Same site as SBE |
 | California Practitioners Advisory Group | Yes, paced | Same site and approach as SBE |
 | FCC Open Commission Meetings | Yes | Via the Federal Register API (fcc.gov denies automated requests); the notice PDF is searched |
@@ -34,27 +34,46 @@ For the history of decisions, current settings and known pitfalls, see
 
 Agencies that aren't automated show in the dashboard as "Not automated yet: check by hand".
 
-**cde.ca.gov (SBE, ACCS, CPAG):** the site's bot protection (Radware) lets an
-occasional request through but challenges several in a row, and challenges
-GitHub's servers outright. So SBE, ACCS and CPAG are checked from an office computer
-(a self-hosted GitHub runner; set the repository variable `USE_OFFICE_RUNNER`
-to `true`), one page per run: meeting lists first, then new agenda pages, then
-re-checks of upcoming agendas. Agenda pages include each item's subject, which
-keyword matching uses right away. Runs with nothing else due download one item
-document (nearest upcoming meeting first, main item documents before
-attachments; Word, PDF and PowerPoint), which then becomes searchable. More
-pages per run (`CDE_PAGES_PER_RUN`) mostly go to documents. Each request is
-logged (`crawl_log`), and every run's summary shows how often CDE accepted
-requests at different spacings. Pacing is adjustable with repository
-variables: `CDE_MIN_GAP_MINUTES` (default 100), `CDE_PAGES_PER_RUN` (default 1)
-and `CDE_PAGE_GAP_SECONDS` (default 90). A challenge pauses CDE checks for 2
-hours, doubling with each further challenge up to 24 hours.
+### cde.ca.gov (SBE, ACCS, CPAG)
 
-To test whether GitHub's servers can check CDE instead, choose **cloud** for
-"Where to check CDE" when running the workflow by hand (one run), or set the
-repository variable `CDE_RUNNER` to `cloud` (every run; the office job then
-doesn't run). Each logged request records where it came from, and the run
-summary splits acceptance by origin.
+The site uses Radware bot protection, which challenges requests made seconds apart. Spaced-out
+requests with the tracker's User-Agent are accepted, from GitHub's servers as well as from an
+office computer, so all three agencies are checked by GitHub's servers.
+
+**What gets read.** The three agencies share one queue (`tracker/paced.py`), stored in the
+database, in this order:
+1. meeting lists not read yet
+2. agenda pages not read yet
+3. meeting lists due for a refresh (every 8 hours)
+4. re-checks of upcoming agendas (every 20 hours)
+5. item documents: nearest upcoming meeting first, main item documents before attachments;
+   Word, PDF and PowerPoint; meetings within 60 days
+
+Agenda pages include each item's subject, which keyword matching uses right away. Documents
+become searchable once they're downloaded. A run stops early when nothing is due, so a routine
+run makes about one request, however many pages it's allowed.
+
+**Pacing** is set with repository variables:
+
+| Variable | What it does | Default | Recommended (Nov 2026) |
+|---|---|---|---|
+| `CDE_PAGES_PER_RUN` | Most pages read per run (capped at 100) | 1 | 70 |
+| `CDE_PAGE_GAP_SECONDS` | Wait between pages within a run | 90 | 25 |
+| `CDE_MIN_GAP_MINUTES` | Minimum time between runs that contact CDE | 100 | 90 |
+
+A change to `CDE_MIN_GAP_MINUTES` applies on the next run. If CDE challenges a request, CDE
+checks pause for 2 hours, doubling with each challenge in a row up to 24 hours. Lowering the
+settings doesn't shorten a pause. Challenges appear as warnings on the run, not failures.
+
+**Monitoring.** Every request is logged in `crawl_log` with the gap since the previous request
+and where it came from. Each run's summary shows how often CDE accepted requests at different
+spacings, and the run's annotations list every page read. If challenges appear at the current
+settings, drop to 20 pages per run at 30 seconds apart.
+
+**Where it runs.** The `CDE_RUNNER` variable is `cloud` (GitHub's servers) or `office` (a
+self-hosted runner, used only when `USE_OFFICE_RUNNER` is `true`). For a single run, choose
+"Where to check CDE" when running the workflow by hand. Both share the same queue. The office
+runner is no longer used.
 
 ## How it behaves
 
