@@ -73,6 +73,33 @@ def test_agenda_items_stored_without_downloading_documents(conn, cde_fetcher):
     assert hits >= 1
 
 
+def test_spare_slots_download_documents_nearest_meeting_main_docs_first(conn, cde_fetcher, monkeypatch):
+    monkeypatch.setattr(paced, "LISTING_REFRESH_HOURS", 1000)
+    item01 = "https://www.cde.ca.gov/be/ag/ag/yr26/documents/sep26item01.docx"
+    cde_fetcher.pages[item01] = ("The board will hear a charter petition appeal.", "text/plain")
+    clock = Clock()
+    for _ in range(6):  # 2 lists, 4 agendas (the June ACCS page is missing: recorded, not retried)
+        run(conn, cde_fetcher, clock)
+        clock.advance(hours=2)
+    assert cde_fetcher.requests[-1].endswith("accsnotice060226.asp")
+    results = run(conn, cde_fetcher, clock)
+    # Nearest upcoming meeting (Sep 9 SBE), its first main item document.
+    assert cde_fetcher.requests[-1] == item01
+    r = results["sbe"]
+    assert r.note.startswith("downloaded Item 01 (DOCX) for State Board of Education Meeting - September 9, 2026")
+    assert len(r.updated) == 1  # new keyword hit on an upcoming meeting
+    text, err = conn.execute("select text, fetch_error from documents where url = %s and posting_id = %s",
+                             (item01, r.updated[0])).fetchone()
+    assert "charter petition" in text and err is None
+    clock.advance(hours=2)
+    run(conn, cde_fetcher, clock)  # next one isn't served: error recorded, moves on afterwards
+    failed = cde_fetcher.requests[-1]
+    clock.advance(hours=2)
+    run(conn, cde_fetcher, clock)
+    assert cde_fetcher.requests[-1] != failed
+    assert not any("attachment" in u.lower() or u.endswith("a1.docx") for u in cde_fetcher.requests[-3:])
+
+
 def test_waits_for_minimum_gap(conn, cde_fetcher, monkeypatch):
     monkeypatch.setenv("CDE_MIN_GAP_MINUTES", "100")
     clock = Clock()

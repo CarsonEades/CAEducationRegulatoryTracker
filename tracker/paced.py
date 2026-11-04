@@ -9,11 +9,14 @@ from a small queue:
   2. an agenda page that has never been read (newly posted meetings),
   3. a meeting list not read in LISTING_REFRESH_HOURS,
   4. an upcoming meeting's agenda not re-read in AGENDA_RECHECK_HOURS (revisions),
-  5. otherwise the meeting list read longest ago.
+  5. an item document not downloaded yet (see next_document),
+  6. otherwise the meeting list read longest ago.
 
-Agenda pages list every item's subject, which is what keyword matching uses.
-Item documents are not downloaded (that would take dozens of requests per
-meeting); their links are kept so they open from the dashboard.
+Agenda pages list every item's subject, which keyword matching uses right
+away. Item documents are downloaded one per spare slot: upcoming meetings
+first, each item's main document before attachments and slides. Once a
+document's text is stored it's searched like any other agency's; a new
+keyword hit on a recent or upcoming meeting flags it as updated.
 
 Every request is logged in crawl_log with the time since the previous one and
 whether it was challenged, and acceptance by spacing is reported each run, so
@@ -48,11 +51,16 @@ HOST = "www.cde.ca.gov"
 CDE_AGENCIES = {"sbe": SBE, "accs": ACCS, "cpag": CPAG}
 STATE_KEY = "cde"
 RECENT_MEETINGS = 2           # agenda pages tracked per agency
-LISTING_REFRESH_HOURS = 6
+LISTING_REFRESH_HOURS = 8
 AGENDA_RECHECK_HOURS = 20
 BACKOFF_START = dt.timedelta(hours=2)
 BACKOFF_MAX = dt.timedelta(hours=24)
-DOCS_NOTE = "not downloaded: cde.ca.gov limits automated requests (open the link to read it)"
+DOCS_NOTE = "not downloaded yet: cde.ca.gov limits automated requests, so documents are fetched one at a time"
+# Documents are downloaded for upcoming meetings and those within this many days.
+DOC_WINDOW_DAYS = 60
+# A late document's new keyword hit flags meetings this recent (or upcoming) as
+# updated; older ones just become searchable, without an alert.
+DOC_ALERT_DAYS = 14
 
 
 def _setting(name: str, default: float) -> float:
@@ -65,9 +73,10 @@ def _setting(name: str, default: float) -> float:
 @dataclass
 class Task:
     agency_id: str
-    kind: str  # "listing" | "agenda"
+    kind: str  # "listing" | "agenda" | "document"
     url: str
     meeting: list | None = None  # [key, url, label, iso date] for agendas
+    doc: tuple | None = None     # (document id, posting id, label, meeting date, posting title)
 
 
 def _parse_time(s: str | None) -> dt.datetime | None:
@@ -79,7 +88,8 @@ def _older_than(stamp: str | None, now: dt.datetime, hours: float) -> bool:
     return t is None or now - t >= dt.timedelta(hours=hours)
 
 
-def choose_task(state: dict, agency_ids: list[str], today: dt.date, now: dt.datetime) -> Task:
+def choose_task(state: dict, agency_ids: list[str], today: dt.date, now: dt.datetime,
+                document: Task | None = None) -> Task:
     listings = state.setdefault("listings", {})
     agendas = state.setdefault("agendas", {})
 
@@ -100,7 +110,34 @@ def choose_task(state: dict, agency_ids: list[str], today: dt.date, now: dt.date
         upcoming = m[3] is None or dt.date.fromisoformat(m[3]) >= today - dt.timedelta(days=1)
         if upcoming and _older_than(agendas[m[1]]["fetched_at"], now, AGENDA_RECHECK_HOURS):
             return Task(a, "agenda", m[1], m)
+    if document is not None:
+        return document
     return listing(min(agency_ids, key=lambda a: listings[a]["fetched_at"]))
+
+
+SEARCHABLE = r"\.(docx|pdf|pptx)$"
+
+
+def next_document(conn, agency_ids: list[str], today: dt.date) -> Task | None:
+    """The most useful CDE item document not downloaded yet."""
+    row = conn.execute(
+        """select d.id, d.url, d.label, p.agency_id, p.id, p.meeting_date, p.title
+           from documents d join postings p on p.id = d.posting_id
+           where p.agency_id = any(%(agencies)s)
+             and d.sha256 is null
+             and (d.fetch_error is null or d.fetch_error like 'not downloaded%%')
+             and lower(split_part(d.url, '?', 1)) ~ %(searchable)s
+             and (p.meeting_date is null or p.meeting_date >= %(today)s::date - %(window)s)
+           order by (p.meeting_date is null or p.meeting_date >= %(today)s::date) desc,
+                    (coalesce(d.label, '') ~* '(attachment|handout|slides|appendix|exhibit)'),
+                    abs(p.meeting_date - %(today)s::date) nulls first, d.id
+           limit 1""",
+        {"agencies": agency_ids, "searchable": SEARCHABLE, "today": today, "window": DOC_WINDOW_DAYS},
+    ).fetchone()
+    if not row:
+        return None
+    doc_id, url, label, agency_id, posting_id, mdate, title = row
+    return Task(agency_id, "document", url, doc=(doc_id, posting_id, label, mdate, title))
 
 
 def load_state(conn) -> dict:
@@ -184,7 +221,7 @@ def run_cde(conn: psycopg.Connection, fetcher: Fetcher, agency_ids: list[str],
         if i:
             sleep(page_gap)
         t = clock()
-        task = choose_task(state, agency_ids, today, t)
+        task = choose_task(state, agency_ids, today, t, next_document(conn, agency_ids, today))
         r = results[task.agency_id]
         try:
             resp = fetcher.get(task.url)
@@ -200,10 +237,21 @@ def run_cde(conn: psycopg.Connection, fetcher: Fetcher, agency_ids: list[str],
             break
         except FetchError as e:
             _log_request(conn, task.url, t, "error", str(e)[:500])
-            failures = _mark_failure(conn, task.agency_id, str(e))
-            results[task.agency_id] = AgencyResult(task.agency_id, ok=False, error=str(e),
-                                                    consecutive_failures=failures)
             state["next_allowed_at"] = (t + min_gap).isoformat()
+            # Don't pick the same broken page or file again on every run.
+            if task.kind == "agenda":
+                state["agendas"][task.url] = {"fetched_at": t.isoformat(), "error": str(e)[:300]}
+            if task.kind == "document":
+                conn.execute("update documents set fetch_error = %s, fetched_at = now() where id = %s",
+                             (str(e)[:500], task.doc[0]))
+                r.skipped = False
+                r.note = f"couldn't download {task.doc[2] or 'a document'}: {e}"
+            else:
+                failures = _mark_failure(conn, task.agency_id, str(e))
+                results[task.agency_id] = AgencyResult(task.agency_id, ok=False, error=str(e),
+                                                        consecutive_failures=failures)
+            save_state(conn, state)
+            conn.commit()
             break
 
         gap = _log_request(conn, task.url, t, "ok", None)
@@ -212,7 +260,15 @@ def run_cde(conn: psycopg.Connection, fetcher: Fetcher, agency_ids: list[str],
         stamp = t.isoformat()
         scraper = CDE_AGENCIES[task.agency_id]()
         r.skipped = False
-        if task.kind == "listing":
+        if task.kind == "document":
+            r.note, flagged = _store_document(conn, task, resp, today)
+            r.note += f" ({_gap_text(gap)})"
+            if flagged:
+                r.updated.append(task.doc[1])
+            else:
+                r.unchanged += 1
+            _mark_success(conn, task.agency_id)
+        elif task.kind == "listing":
             meetings = [[k, u, label, d.isoformat() if d else None]
                         for k, u, label, d in scraper.parse_listing(resp.content)]
             first = task.agency_id not in state["listings"]
@@ -250,6 +306,39 @@ def run_cde(conn: psycopg.Connection, fetcher: Fetcher, agency_ids: list[str],
     save_state(conn, state)
     conn.commit()
     return list(results.values())
+
+
+def _store_document(conn, task: Task, resp, today: dt.date) -> tuple[str, bool]:
+    """Save a downloaded document's text and re-run keyword matching.
+    Returns (note, whether the meeting was flagged as updated)."""
+    from tracker.documents import document_from_response
+    from tracker.pipeline import _match_keys, _strip_nul
+
+    doc_id, posting_id, label, mdate, title = task.doc
+    got = document_from_response(resp, task.url)
+    conn.execute(
+        """update documents set sha256 = %s, text = %s, fetched_at = now(), fetch_error = %s
+           where id = %s""",
+        (got.sha256, _strip_nul(got.text), got.error, doc_id),
+    )
+    before = _match_keys(conn, posting_id)
+    conn.execute("select rematch(%s, null)", ([posting_id],))
+    new_hits = _match_keys(conn, posting_id) - before
+    recent = mdate is None or mdate >= today - dt.timedelta(days=DOC_ALERT_DAYS)
+    flagged = bool(new_hits) and recent
+    if flagged:
+        conn.execute("update postings set last_changed_at = clock_timestamp() where id = %s", (posting_id,))
+        conn.execute(
+            """insert into posting_events (posting_id, kind, content_hash)
+               select id, 'updated', content_hash from postings where id = %s""",
+            (posting_id,),
+        )
+    what = f"downloaded {label or 'a document'} for {title}"
+    if got.text is None:
+        what += f" (no searchable text: {got.error})"
+    elif new_hits:
+        what += f"; {len(new_hits)} new keyword hit(s)"
+    return what, flagged
 
 
 def _gap_text(gap: int | None) -> str:

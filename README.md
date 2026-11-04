@@ -37,7 +37,10 @@ GitHub's servers outright. So SBE, ACCS and CPAG are checked from an office comp
 (a self-hosted GitHub runner; set the repository variable `USE_OFFICE_RUNNER`
 to `true`), one page per run: meeting lists first, then new agenda pages, then
 re-checks of upcoming agendas. Agenda pages include each item's subject, which
-keyword matching uses; item documents aren't downloaded. Each request is
+keyword matching uses right away. Runs with nothing else due download one item
+document (nearest upcoming meeting first, main item documents before
+attachments; Word, PDF and PowerPoint), which then becomes searchable. More
+pages per run (`CDE_PAGES_PER_RUN`) mostly go to documents. Each request is
 logged (`crawl_log`), and every run's summary shows how often CDE accepted
 requests at different spacings. Pacing is adjustable with repository
 variables: `CDE_MIN_GAP_MINUTES` (default 100), `CDE_PAGES_PER_RUN` (default 1)

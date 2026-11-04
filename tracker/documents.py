@@ -23,6 +23,10 @@ def fetch_document(fetcher: Fetcher, url: str) -> FetchedDocument:
         resp = fetcher.get(url)
     except FetchError as e:
         return FetchedDocument(None, None, str(e))
+    return document_from_response(resp, url)
+
+
+def document_from_response(resp, url: str) -> FetchedDocument:
     data = resp.content
     sha = hashlib.sha256(data).hexdigest()
     ctype = resp.headers.get("content-type", "").lower()
@@ -43,6 +47,8 @@ def extract_text(data: bytes, content_type: str, url: str) -> str | None:
         return pdf_text(data)
     if data[:2] == b"PK" and ("wordprocessingml" in content_type or path.endswith(".docx")):
         return docx_text(data)
+    if data[:2] == b"PK" and ("presentationml" in content_type or path.endswith(".pptx")):
+        return pptx_text(data)
     if "html" in content_type:
         return html_text(data)
     if content_type.startswith("text/"):
@@ -77,3 +83,18 @@ def docx_text(data: bytes) -> str:
         xml = z.read("word/document.xml").decode("utf-8", errors="replace")
     xml = re.sub(r"</w:p>", "\n", xml)
     return re.sub(r"<[^>]+>", "", xml)
+
+
+def pptx_text(data: bytes) -> str:
+    """Text of each slide, in slide order."""
+    import re
+    import zipfile
+
+    with zipfile.ZipFile(io.BytesIO(data)) as z:
+        slides = sorted((n for n in z.namelist() if re.fullmatch(r"ppt/slides/slide\d+\.xml", n)),
+                        key=lambda n: int(re.search(r"(\d+)", n.rsplit("/", 1)[1])[1]))
+        parts = []
+        for n in slides:
+            xml = z.read(n).decode("utf-8", errors="replace")
+            parts.append(" ".join(re.findall(r"<a:t>([^<]*)</a:t>", xml)))
+    return "\n".join(parts)
