@@ -10,6 +10,9 @@ GitHub Actions (every 2h) ──► Python scrapers ──► Supabase Postgres 
                                     └──► Resend email   └── Supabase Auth (invite-only logins)
 ```
 
+For the history of decisions, current settings and known pitfalls, see
+[docs/HANDOFF.md](docs/HANDOFF.md).
+
 ## Status
 
 | Agency | Automated | Notes |
