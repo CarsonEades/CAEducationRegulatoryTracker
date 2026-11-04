@@ -12,16 +12,16 @@ on:
         description: "Only this agency id (e.g. sbe). Leave blank for all."
         required: false
       cde_runner:
-        description: "Where to check CDE (SBE, ACCS) this run. 'default' follows the CDE_RUNNER variable."
+        description: "Where to check CDE (SBE, ACCS, CPAG) this run. 'default' follows the CDE_RUNNER variable."
         type: choice
         options: [default, office, cloud]
         default: default
 
-# cde.ca.gov (SBE, ACCS, CPAG) has challenged requests from GitHub's servers, so those
-# agencies can be checked from an office computer running a self-hosted GitHub
-# runner: set the repository variable USE_OFFICE_RUNNER to "true" once the
-# runner is installed. CDE is read one page per run; see tracker/paced.py for
-# the CDE_* pacing variables.
+# cde.ca.gov (SBE, ACCS, CPAG) uses bot protection, so those agencies are read
+# through a paced queue; see tracker/paced.py for the CDE_* pacing variables.
+# They can also be checked from an office computer running a self-hosted GitHub
+# runner (set the repository variable USE_OFFICE_RUNNER to "true"); that's no
+# longer used, since spaced-out requests from GitHub's servers are accepted.
 #
 # Where CDE is checked: the repository variable CDE_RUNNER ("office", the
 # default, or "cloud"), or for a single manual run the cde_runner input. With
@@ -46,8 +46,8 @@ jobs:
       group: scrape-cloud
       cancel-in-progress: false
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
           cache: pip
@@ -77,7 +77,7 @@ jobs:
     # for all users and added to PATH). actions/setup-python is unreliable on
     # self-hosted Windows runners.
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Create Python environment
         run: ${{ runner.os == 'Windows' && 'py -3' || 'python3' }} -m venv .venv
       - name: Install

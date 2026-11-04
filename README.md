@@ -37,8 +37,10 @@ Agencies that aren't automated show in the dashboard as "Not automated yet: chec
 ### cde.ca.gov (SBE, ACCS, CPAG)
 
 The site uses Radware bot protection, which challenges requests made seconds apart. Spaced-out
-requests with the tracker's User-Agent are accepted, from GitHub's servers as well as from an
-office computer, so all three agencies are checked by GitHub's servers.
+requests with the tracker's User-Agent are mostly accepted, from GitHub's servers as well as from
+an office computer, so all three agencies are checked by GitHub's servers. Keep the pacing
+conservative: on Nov 4, 2026, after roughly 100 requests overnight at 25–30 seconds apart, CDE
+challenged a request 26 seconds after the first request of the next morning.
 
 **What gets read.** The three agencies share one queue (`tracker/paced.py`), stored in the
 database, in this order:
@@ -57,8 +59,8 @@ run makes about one request, however many pages it's allowed.
 
 | Variable | What it does | Default | Recommended (Nov 2026) |
 |---|---|---|---|
-| `CDE_PAGES_PER_RUN` | Most pages read per run (capped at 100) | 1 | 70 |
-| `CDE_PAGE_GAP_SECONDS` | Wait between pages within a run | 90 | 25 |
+| `CDE_PAGES_PER_RUN` | Most pages read per run (capped at 100) | 1 | 10 |
+| `CDE_PAGE_GAP_SECONDS` | Wait between pages within a run | 90 | 60 |
 | `CDE_MIN_GAP_MINUTES` | Minimum time between runs that contact CDE | 100 | 90 |
 
 A change to `CDE_MIN_GAP_MINUTES` applies on the next run. If CDE challenges a request, CDE
@@ -67,8 +69,9 @@ settings doesn't shorten a pause. Challenges appear as warnings on the run, not 
 
 **Monitoring.** Every request is logged in `crawl_log` with the gap since the previous request
 and where it came from. Each run's summary shows how often CDE accepted requests at different
-spacings, and the run's annotations list every page read. If challenges appear at the current
-settings, drop to 20 pages per run at 30 seconds apart.
+spacings, and the run's annotations list every page read. If challenges continue at the
+recommended settings, back off further (for example 5 pages per run, 90 seconds apart). After a
+week or more without challenges, you can move back toward 20 pages at 30 seconds.
 
 **Where it runs.** The `CDE_RUNNER` variable is `cloud` (GitHub's servers) or `office` (a
 self-hosted runner, used only when `USE_OFFICE_RUNNER` is `true`). For a single run, choose

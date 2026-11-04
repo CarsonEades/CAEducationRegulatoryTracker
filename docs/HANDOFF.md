@@ -4,7 +4,7 @@ Context for a new working session on this repository (`carsoneades/CAEducationRe
 formerly `Kalkin55/…`). Read this together with `README.md`, which has setup, the per-agency
 status table and the CDE pacing variables.
 
-Last updated: 2026-11-04.
+Last updated: 2026-11-04 (afternoon).
 
 ## What this is and why
 
@@ -72,15 +72,14 @@ GitHub Actions (cron) → Python scrapers → Supabase Postgres ← React dashbo
 - **Secrets:** `DATABASE_URL` (Supabase session pooler), `RESEND_API_KEY`, `EMAIL_FROM`,
   `ADMIN_EMAILS`.
 - **Variables:** `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `DASHBOARD_URL`, `CDE_RUNNER=cloud`,
-  `CDE_PAGES_PER_RUN=70`, `CDE_PAGE_GAP_SECONDS=25`, `USE_OFFICE_RUNNER` (was `true`; it has
-  no effect while `CDE_RUNNER=cloud`).
-- `CDE_MIN_GAP_MINUTES` was last set to `30` during testing; the recommended value is `90`.
+  `CDE_PAGES_PER_RUN=10`, `CDE_PAGE_GAP_SECONDS=60`, `CDE_MIN_GAP_MINUTES=90`,
+  `USE_OFFICE_RUNNER` (was `true`; it has no effect while `CDE_RUNNER=cloud`).
+  The CDE values were lowered on Nov 4 after a challenge (see the CDE section below).
 - **Optional:** `TRACKER_USER_AGENT`, `CHECK_EVERY_HOURS` (e.g. `eaap=6`), `OFFICE_AGENCIES`.
 
 ### Possibly unfinished after the username rename (check with the owner)
 
-1. Re-run **Deploy dashboard**, since the Pages URL changed and GitHub doesn't redirect old
-   Pages URLs.
+1. ~~Re-run **Deploy dashboard**~~: done (run by hand on Nov 4, succeeded).
 2. Supabase **Authentication → URL Configuration**: update the Site URL and Redirect URLs to
    the new dashboard URL. Sign-in links break until this is done.
 3. Update the `DASHBOARD_URL` variable, which is used for links in emails.
@@ -135,7 +134,13 @@ GitHub Actions (cron) → Python scrapers → Supabase Postgres ← React dashbo
   - After that fix, every spaced-out request was accepted, from both the office computer and
     GitHub's servers.
   - Later the owner tested bursts: 20 pages at 30s twice, then 70 pages at 25s. All were
-    accepted, more than 100 requests in total.
+    accepted, more than 100 requests in total (Nov 3–4, overnight UTC).
+  - **First challenge since the User-Agent fix (Nov 4, 14:13 UTC):** the first request of
+    the morning (SBE list, 7.9h after the previous one) was accepted, and the next one
+    (ACCS, 26s later) was challenged. Run size wasn't the trigger, since it was only the
+    second request. Likely causes are the overnight volume or that run's GitHub server; one
+    challenge can't tell them apart. The owner lowered the settings to 10 pages at 60s,
+    with 90 minutes between runs.
 - **How the crawler works:**
   - It uses a rotating queue stored in `crawl_state`, in this order:
     1. unread meeting lists
@@ -242,11 +247,15 @@ GitHub Actions (cron) → Python scrapers → Supabase Postgres ← React dashbo
 ## Open items and ideas
 
 - Confirm the rename follow-ups above are done.
-- **Watch for CDE challenges at 70 pages and 25s.** If any appear, drop to 20 pages at 30s.
+- **Watch for CDE challenges at 10 pages and 60s** (set Nov 4). If they continue, back off
+  further (e.g. 5 pages at 90s). After a week or more without challenges, the pace can move
+  back toward 20 pages at 30s.
 - **Remove the unused self-hosted runner** (security, since the repo is public).
 - **Possible improvements, none started:**
   - conditional GETs (ETag/If-Modified-Since) to make re-checks cheaper for sites
   - per-keyword email alerts
   - showing `crawl_log` acceptance stats on the dashboard's Agencies page
-  - Node 20 deprecation warnings from `actions/checkout@v4` and `setup-python@v5`; bump the
-    actions when newer major versions are available
+  - (Done Nov 4) GitHub's actions were bumped to Node 24 versions: `checkout@v7`,
+    `setup-python@v7`, `setup-node@v7`, `configure-pages@v6`, `upload-pages-artifact@v5`
+    and `deploy-pages@v5`. `checkout@v7` needs runner v2.327.1 or later, which matters only
+    if the office runner is ever used again.
