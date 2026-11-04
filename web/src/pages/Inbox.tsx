@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { supabase } from "../supabase";
 import type { Agency, PostingRow } from "../types";
-import { StatusBadge, fmtDate, must, useLoad } from "../util";
+import { StatusBadge, fmtDate, fmtDateTime, must, useLoad } from "../util";
 
-type View = "needs-review" | "keyword-hits" | "all";
+type View = "needs-review" | "recent" | "keyword-hits" | "all";
 
 export default function Inbox({ agencyFilter }: { agencyFilter?: string }) {
   const [view, setView] = useState<View>("needs-review");
@@ -19,8 +19,15 @@ export default function Inbox({ agencyFilter }: { agencyFilter?: string }) {
     if (view === "needs-review") q = q.in("status", ["new", "updated"]);
     if (view === "keyword-hits") q = q.gt("match_count", 0);
     if (agency) q = q.eq("agency_id", agency);
-    q = q.order("meeting_date", { ascending: false, nullsFirst: true })
-         .order("first_seen_at", { ascending: false }).limit(view === "needs-review" ? 500 : 200);
+    if (view === "recent") {
+      // Newest first by when the tracker first found each posting (within a run or two of
+      // the agency posting it), across all agencies.
+      q = q.order("first_seen_at", { ascending: false })
+           .order("meeting_date", { ascending: false, nullsFirst: false }).limit(200);
+    } else {
+      q = q.order("meeting_date", { ascending: false, nullsFirst: true })
+           .order("first_seen_at", { ascending: false }).limit(view === "needs-review" ? 500 : 200);
+    }
     return must(await q) as PostingRow[];
   }, [view, agency]);
 
@@ -33,18 +40,48 @@ export default function Inbox({ agencyFilter }: { agencyFilter?: string }) {
   }
 
   const groups = new Map<string, PostingRow[]>();
-  for (const p of postings.data ?? []) {
+  for (const p of view === "recent" ? [] : postings.data ?? []) {
     const list = groups.get(p.agency_name) ?? [];
     list.push(p);
     groups.set(p.agency_name, list);
   }
+
+  function renderRow(p: PostingRow, showAgency: boolean) {
+    return (
+      <li key={p.id}>
+        <div className="row-main">
+          <StatusBadge status={p.status} />
+          {showAgency && <span className="badge agency" title={p.agency_name}>{p.agency_short_name}</span>}
+          <a href={`#/posting/${p.id}`} className="title">{p.title}</a>
+          {p.meeting_date && <span className="muted">{fmtDate(p.meeting_date)}</span>}
+        </div>
+        <div className="row-meta">
+          {showAgency && <span className="muted">Found {fmtDateTime(p.first_seen_at)}</span>}
+          {p.matched_keywords.map((k) => <span key={k} className="badge kw">{k}</span>)}
+          {p.status === "reviewed" && (
+            <span className="muted">
+              Reviewed by {p.last_reviewed_by_name || p.last_reviewed_by_email} {fmtDate(p.last_reviewed_at)}
+            </span>
+          )}
+          {p.url && <a href={p.url} target="_blank" rel="noreferrer">Source ↗</a>}
+          {(p.status === "new" || p.status === "updated") && (
+            <button className="small" disabled={busy === p.id} onClick={() => markReviewed(p.id)}>
+              Mark reviewed
+            </button>
+          )}
+        </div>
+      </li>
+    );
+  }
+
   const failing = (agencies.data ?? []).filter((a) => a.consecutive_failures >= 3);
 
   return (
     <>
       <div className="toolbar">
         <div className="segmented">
-          {([["needs-review", "Needs review"], ["keyword-hits", "Keyword hits"], ["all", "All"]] as const)
+          {([["needs-review", "Needs review"], ["recent", "Recent items"], ["keyword-hits", "Keyword hits"],
+             ["all", "All"]] as const)
             .map(([v, label]) => (
               <button key={v} className={view === v ? "on" : ""} onClick={() => setView(v)}>{label}</button>
             ))}
@@ -66,33 +103,15 @@ export default function Inbox({ agencyFilter }: { agencyFilter?: string }) {
         <p className="empty">{view === "needs-review" ? "Nothing to review. You're caught up." : "No postings."}</p>
       )}
 
+      {view === "recent" && postings.data && postings.data.length > 0 && (
+        <ul className="postings">{postings.data.map((p) => renderRow(p, true))}</ul>
+      )}
+
       {[...groups].map(([agencyName, rows]) => (
         <section key={agencyName} className="group">
           <h2>{agencyName} <span className="count">{rows.length}</span></h2>
           <ul className="postings">
-            {rows.map((p) => (
-              <li key={p.id}>
-                <div className="row-main">
-                  <StatusBadge status={p.status} />
-                  <a href={`#/posting/${p.id}`} className="title">{p.title}</a>
-                  {p.meeting_date && <span className="muted">{fmtDate(p.meeting_date)}</span>}
-                </div>
-                <div className="row-meta">
-                  {p.matched_keywords.map((k) => <span key={k} className="badge kw">{k}</span>)}
-                  {p.status === "reviewed" && (
-                    <span className="muted">
-                      Reviewed by {p.last_reviewed_by_name || p.last_reviewed_by_email} {fmtDate(p.last_reviewed_at)}
-                    </span>
-                  )}
-                  {p.url && <a href={p.url} target="_blank" rel="noreferrer">Source ↗</a>}
-                  {(p.status === "new" || p.status === "updated") && (
-                    <button className="small" disabled={busy === p.id} onClick={() => markReviewed(p.id)}>
-                      Mark reviewed
-                    </button>
-                  )}
-                </div>
-              </li>
-            ))}
+            {rows.map((p) => renderRow(p, false))}
           </ul>
         </section>
       ))}
