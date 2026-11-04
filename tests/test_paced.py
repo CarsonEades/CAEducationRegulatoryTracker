@@ -110,6 +110,33 @@ def test_waits_for_minimum_gap(conn, cde_fetcher, monkeypatch):
     assert all(r.skipped and "spacing requests" in r.note for r in results.values())
 
 
+def test_changing_min_gap_takes_effect_immediately(conn, cde_fetcher, monkeypatch):
+    monkeypatch.setenv("CDE_MIN_GAP_MINUTES", "100")
+    clock = Clock()
+    run(conn, cde_fetcher, clock)
+    clock.advance(minutes=60)
+    assert all(r.skipped for r in run(conn, cde_fetcher, clock).values())
+    monkeypatch.setenv("CDE_MIN_GAP_MINUTES", "30")
+    run(conn, cde_fetcher, clock)
+    assert len(cde_fetcher.requests) == 2  # the lower setting applied right away
+
+
+def test_lower_min_gap_does_not_cut_backoff_short(conn, cde_fetcher, monkeypatch):
+    clock = Clock()
+
+    def blocked(url):
+        raise BlockedError("redirected to a bot-protection challenge")
+
+    real_get = cde_fetcher.get
+    cde_fetcher.get = blocked
+    run(conn, cde_fetcher, clock)
+    cde_fetcher.get = real_get
+    monkeypatch.setenv("CDE_MIN_GAP_MINUTES", "1")
+    clock.advance(minutes=30)
+    r = run(conn, cde_fetcher, clock)["sbe"]
+    assert r.skipped and r.note.startswith("backing off") and cde_fetcher.requests == []
+
+
 def test_challenge_backs_off_and_doubles(conn, cde_fetcher):
     clock = Clock()
 

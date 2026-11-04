@@ -161,6 +161,20 @@ def origin() -> str:
 ORIGIN_NAMES = {"github": "GitHub's servers", "office": "the office computer", "local": "a local run"}
 
 
+def _next_allowed(conn, state: dict, min_gap: dt.timedelta) -> tuple[dt.datetime | None, str]:
+    """When CDE may be contacted next, and why we'd be waiting.
+
+    After a challenge, the saved backoff time applies. Otherwise it's the last
+    CDE request plus the *current* CDE_MIN_GAP_MINUTES, so changing that setting
+    takes effect on the next run."""
+    if state.get("challenges"):
+        until = _parse_time(state.get("backoff_until") or state.get("next_allowed_at"))
+        return until, "backing off after CDE challenged a request"
+    last = conn.execute(
+        "select max(requested_at) from crawl_log where host = %s", (HOST,)).fetchone()[0]
+    return (last + min_gap if last else None), "spacing requests to CDE"
+
+
 def _log_request(conn, url: str, now: dt.datetime, outcome: str, detail: str | None) -> int | None:
     # Spacing is measured from the previous request from anywhere: CDE sees
     # them all, and both runners share one pacing queue.
@@ -205,17 +219,15 @@ def run_cde(conn: psycopg.Connection, fetcher: Fetcher, agency_ids: list[str],
     state = load_state(conn)
     t = clock()
 
-    waiting_until = _parse_time(state.get("next_allowed_at"))
-    if waiting_until and t < waiting_until:
-        why = ("backing off after CDE challenged a request" if state.get("challenges")
-               else "spacing requests to CDE")
-        for r in results.values():
-            r.note = f"{why}; next CDE request after {waiting_until:%b %d %H:%M} UTC"
-        return list(results.values())
-
     pages = max(1, int(_setting("CDE_PAGES_PER_RUN", 1)))
     page_gap = _setting("CDE_PAGE_GAP_SECONDS", 90)
     min_gap = dt.timedelta(minutes=_setting("CDE_MIN_GAP_MINUTES", 100))
+
+    waiting_until, why = _next_allowed(conn, state, min_gap)
+    if waiting_until and t < waiting_until:
+        for r in results.values():
+            r.note = f"{why}; next CDE request after {waiting_until:%b %d %H:%M} UTC"
+        return list(results.values())
 
     for i in range(pages):
         if i:
@@ -229,7 +241,7 @@ def run_cde(conn: psycopg.Connection, fetcher: Fetcher, agency_ids: list[str],
             gap = _log_request(conn, task.url, t, "challenged", str(e)[:500])
             state["challenges"] = state.get("challenges", 0) + 1
             backoff = min(BACKOFF_START * 2 ** (state["challenges"] - 1), BACKOFF_MAX)
-            state["next_allowed_at"] = (t + backoff).isoformat()
+            state["backoff_until"] = (t + backoff).isoformat()
             failures = _mark_failure(conn, task.agency_id, f"CDE challenged the request; retrying after {backoff}")
             results[task.agency_id] = AgencyResult(
                 task.agency_id, ok=False, error=f"challenged by CDE bot protection ({_gap_text(gap)}); backing off {backoff}",
@@ -237,7 +249,6 @@ def run_cde(conn: psycopg.Connection, fetcher: Fetcher, agency_ids: list[str],
             break
         except FetchError as e:
             _log_request(conn, task.url, t, "error", str(e)[:500])
-            state["next_allowed_at"] = (t + min_gap).isoformat()
             # Don't pick the same broken page or file again on every run.
             if task.kind == "agenda":
                 state["agendas"][task.url] = {"fetched_at": t.isoformat(), "error": str(e)[:300]}
@@ -256,7 +267,8 @@ def run_cde(conn: psycopg.Connection, fetcher: Fetcher, agency_ids: list[str],
 
         gap = _log_request(conn, task.url, t, "ok", None)
         state["challenges"] = 0
-        state["next_allowed_at"] = (t + min_gap).isoformat()
+        state.pop("backoff_until", None)
+        state.pop("next_allowed_at", None)  # saved by earlier versions
         stamp = t.isoformat()
         scraper = CDE_AGENCIES[task.agency_id]()
         r.skipped = False
