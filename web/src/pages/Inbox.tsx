@@ -5,6 +5,34 @@ import { StatusBadge, fmtDate, fmtDateTime, must, useLoad } from "../util";
 
 type View = "needs-review" | "recent" | "keyword-hits" | "all";
 
+const RECENT_LIMIT = 200;
+
+/** The date a posting is listed under in Recent items: its own date (the meeting date for
+ *  agendas; issued or filed date for AG opinions and initiatives), or, when the agency
+ *  gives none, the day the tracker first found it. */
+function recentDate(p: PostingRow): string {
+  return p.meeting_date ?? p.first_seen_at.slice(0, 10);
+}
+
+/** All agencies' postings in one list, newest date first. Postings without a date are
+ *  fetched separately so they can be placed by the day they were found. */
+async function recentPostings(agency: string): Promise<PostingRow[]> {
+  const base = () => {
+    const q = supabase.from("posting_status").select("*");
+    return agency ? q.eq("agency_id", agency) : q;
+  };
+  const [dated, undated] = await Promise.all([
+    base().not("meeting_date", "is", null).order("meeting_date", { ascending: false })
+      .order("first_seen_at", { ascending: false }).limit(RECENT_LIMIT),
+    base().is("meeting_date", null).order("first_seen_at", { ascending: false }).limit(RECENT_LIMIT),
+  ]);
+  const rows = [...must(dated), ...must(undated)] as PostingRow[];
+  return rows
+    .sort((a, b) => recentDate(b).localeCompare(recentDate(a))
+      || Date.parse(b.first_seen_at) - Date.parse(a.first_seen_at))
+    .slice(0, RECENT_LIMIT);
+}
+
 export default function Inbox({ agencyFilter }: { agencyFilter?: string }) {
   const [view, setView] = useState<View>("needs-review");
   const [agency, setAgency] = useState(agencyFilter ?? "");
@@ -15,19 +43,13 @@ export default function Inbox({ agencyFilter }: { agencyFilter?: string }) {
     [],
   );
   const postings = useLoad(async () => {
+    if (view === "recent") return recentPostings(agency);
     let q = supabase.from("posting_status").select("*");
     if (view === "needs-review") q = q.in("status", ["new", "updated"]);
     if (view === "keyword-hits") q = q.gt("match_count", 0);
     if (agency) q = q.eq("agency_id", agency);
-    if (view === "recent") {
-      // Newest first by when the tracker first found each posting (within a run or two of
-      // the agency posting it), across all agencies.
-      q = q.order("first_seen_at", { ascending: false })
-           .order("meeting_date", { ascending: false, nullsFirst: false }).limit(200);
-    } else {
-      q = q.order("meeting_date", { ascending: false, nullsFirst: true })
-           .order("first_seen_at", { ascending: false }).limit(view === "needs-review" ? 500 : 200);
-    }
+    q = q.order("meeting_date", { ascending: false, nullsFirst: true })
+         .order("first_seen_at", { ascending: false }).limit(view === "needs-review" ? 500 : 200);
     return must(await q) as PostingRow[];
   }, [view, agency]);
 
@@ -56,7 +78,7 @@ export default function Inbox({ agencyFilter }: { agencyFilter?: string }) {
           {p.meeting_date && <span className="muted">{fmtDate(p.meeting_date)}</span>}
         </div>
         <div className="row-meta">
-          {showAgency && <span className="muted">Found {fmtDateTime(p.first_seen_at)}</span>}
+          {showAgency && !p.meeting_date && <span className="muted">Found {fmtDateTime(p.first_seen_at)}</span>}
           {p.matched_keywords.map((k) => <span key={k} className="badge kw">{k}</span>)}
           {p.status === "reviewed" && (
             <span className="muted">
