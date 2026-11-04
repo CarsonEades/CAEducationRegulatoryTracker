@@ -6,6 +6,7 @@ import datetime as dt
 import hashlib
 import json
 import logging
+import os
 from dataclasses import dataclass, field
 
 import psycopg
@@ -26,9 +27,23 @@ MAX_DOCS_PER_POSTING = 200
 # always fetched right away; this just avoids re-downloading every PDF of a
 # large meeting (CalSTRS posts 100+) on each run.
 DOC_RECHECK_HOURS = 12
-# Agencies whose sites limit automated requests and that meet rarely are checked
-# at most this often (hours), whether the last check succeeded or not.
-CHECK_EVERY_HOURS = {"eaap": 6}
+# Optionally check an agency at most every N hours (whether or not the last
+# check succeeded), e.g. if its site starts refusing frequent checks. Set with
+# the CHECK_EVERY_HOURS environment variable / repository variable, as
+# "agency=hours" pairs: "eaap=6" or "eaap=6,ccee=4". Empty = every run.
+def _check_every_hours() -> dict[str, float]:
+    out = {}
+    for pair in os.environ.get("CHECK_EVERY_HOURS", "").split(","):
+        agency, _, hours = pair.partition("=")
+        try:
+            if agency.strip() and float(hours) > 0:
+                out[agency.strip()] = float(hours)
+        except ValueError:
+            log.warning("ignoring CHECK_EVERY_HOURS entry %r", pair)
+    return out
+
+
+CHECK_EVERY_HOURS = _check_every_hours()
 # This many failed runs in a row flags an agency in the dashboard and emails an admin.
 FAILURE_ALERT_THRESHOLD = 3
 
@@ -97,7 +112,7 @@ def run(conn: psycopg.Connection, fetcher: Fetcher, agency_ids: list[str] | None
                 """select last_checked_at > now() - make_interval(hours => %s)
                    from agencies where id = %s""", (hours, agency_id)).fetchone()[0]:
             results.append(AgencyResult(agency_id, ok=True, skipped=True,
-                                        note=f"checked at most every {hours} hours (the site limits automated requests)"))
+                                        note=f"checked at most every {hours:g} hours (CHECK_EVERY_HOURS)"))
             continue
         results.append(run_agency(conn, fetcher, agency_id, scraper.fetch, today))
     return results

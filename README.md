@@ -27,7 +27,7 @@ GitHub Actions (every 2h) ──► Python scrapers ──► Supabase Postgres 
 | Advisory Commission on Charter Schools | Yes, paced | Same site as SBE |
 | California Practitioners Advisory Group | Yes, paced | Same site and approach as SBE |
 | FCC Open Commission Meetings | Yes | Via the Federal Register API (fcc.gov denies automated requests); the notice PDF is searched |
-| Educational Audit Appeals Panel | Yes, every 6 hours | Behind Cloudflare, which allows occasional requests; reports name appealing districts and charter schools |
+| Educational Audit Appeals Panel | Yes | Behind Cloudflare, which allows occasional requests (one page per check); reports name appealing districts and charter schools. If it starts refusing checks, set the `CHECK_EVERY_HOURS` variable to `eaap=6` |
 
 Agencies that aren't automated show in the dashboard as "Not automated yet: check by hand".
 

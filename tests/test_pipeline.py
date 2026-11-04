@@ -259,3 +259,10 @@ def test_partial_listing_leaves_stored_posting_alone(conn, fetcher):
     assert conn.execute("select count(*) from items where posting_id = %s", (pid,)).fetchone()[0] == 2
     assert conn.execute("select title from postings where id = %s", (pid,)).fetchone()[0] \
         == "November 5-6, 2026 State Board Meeting"
+
+
+def test_check_every_hours_setting(monkeypatch):
+    monkeypatch.setenv("CHECK_EVERY_HOURS", "eaap=6, ccee=4.5,bogus,x=abc")
+    assert pipeline._check_every_hours() == {"eaap": 6.0, "ccee": 4.5}
+    monkeypatch.setenv("CHECK_EVERY_HOURS", "")
+    assert pipeline._check_every_hours() == {}

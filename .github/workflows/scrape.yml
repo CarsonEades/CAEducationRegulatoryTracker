@@ -32,6 +32,8 @@ env:
   CDE_MIN_GAP_MINUTES: ${{ vars.CDE_MIN_GAP_MINUTES }}
   CDE_PAGES_PER_RUN: ${{ vars.CDE_PAGES_PER_RUN }}
   CDE_PAGE_GAP_SECONDS: ${{ vars.CDE_PAGE_GAP_SECONDS }}
+  # Optional per-agency minimum interval, e.g. "eaap=6" (see tracker/pipeline.py).
+  CHECK_EVERY_HOURS: ${{ vars.CHECK_EVERY_HOURS }}
 
 jobs:
   cloud:
