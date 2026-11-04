@@ -100,6 +100,21 @@ def test_spare_slots_download_documents_nearest_meeting_main_docs_first(conn, cd
     assert not any("attachment" in u.lower() or u.endswith("a1.docx") for u in cde_fetcher.requests[-3:])
 
 
+def test_extra_pages_stop_when_nothing_is_due(conn, cde_fetcher, monkeypatch):
+    monkeypatch.setattr(paced, "LISTING_REFRESH_HOURS", 1000)
+    monkeypatch.setattr(paced, "next_document", lambda *a: None)  # no documents left
+    clock = Clock()
+    for _ in range(6):  # lists and agendas
+        run(conn, cde_fetcher, clock)
+        clock.advance(hours=2)
+    before = len(cde_fetcher.requests)
+    monkeypatch.setenv("CDE_PAGES_PER_RUN", "10")
+    waits = []
+    paced.run_cde(conn, cde_fetcher, ["sbe", "accs"], today=dt.date(2026, 9, 1), now=clock, sleep=waits.append)
+    # One routine list re-read, then nothing else worth a request.
+    assert len(cde_fetcher.requests) - before == 1 and waits == []
+
+
 def test_waits_for_minimum_gap(conn, cde_fetcher, monkeypatch):
     monkeypatch.setenv("CDE_MIN_GAP_MINUTES", "100")
     clock = Clock()

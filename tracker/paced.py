@@ -77,6 +77,7 @@ class Task:
     url: str
     meeting: list | None = None  # [key, url, label, iso date] for agendas
     doc: tuple | None = None     # (document id, posting id, label, meeting date, posting title)
+    due: bool = True             # False for the "nothing else to do" list re-read
 
 
 def _parse_time(s: str | None) -> dt.datetime | None:
@@ -112,7 +113,9 @@ def choose_task(state: dict, agency_ids: list[str], today: dt.date, now: dt.date
             return Task(a, "agenda", m[1], m)
     if document is not None:
         return document
-    return listing(min(agency_ids, key=lambda a: listings[a]["fetched_at"]))
+    fallback = listing(min(agency_ids, key=lambda a: listings[a]["fetched_at"]))
+    fallback.due = False
+    return fallback
 
 
 SEARCHABLE = r"\.(docx|pdf|pptx)$"
@@ -230,10 +233,13 @@ def run_cde(conn: psycopg.Connection, fetcher: Fetcher, agency_ids: list[str],
         return list(results.values())
 
     for i in range(pages):
-        if i:
-            sleep(page_gap)
         t = clock()
         task = choose_task(state, agency_ids, today, t, next_document(conn, agency_ids, today))
+        if i and not task.due:
+            break  # nothing left worth a request; extra pages are only for real work
+        if i:
+            sleep(page_gap)
+            t = clock()
         r = results[task.agency_id]
         try:
             resp = fetcher.get(task.url)
