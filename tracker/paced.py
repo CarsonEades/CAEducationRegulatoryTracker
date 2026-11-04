@@ -245,7 +245,7 @@ def run_cde(conn: psycopg.Connection, fetcher: Fetcher, agency_ids: list[str],
                 conn.execute("update documents set fetch_error = %s, fetched_at = now() where id = %s",
                              (str(e)[:500], task.doc[0]))
                 r.skipped = False
-                r.note = f"couldn't download {task.doc[2] or 'a document'}: {e}"
+                _add_note(r, f"couldn't download {task.doc[2] or 'a document'}: {e}")
             else:
                 failures = _mark_failure(conn, task.agency_id, str(e))
                 results[task.agency_id] = AgencyResult(task.agency_id, ok=False, error=str(e),
@@ -261,8 +261,8 @@ def run_cde(conn: psycopg.Connection, fetcher: Fetcher, agency_ids: list[str],
         scraper = CDE_AGENCIES[task.agency_id]()
         r.skipped = False
         if task.kind == "document":
-            r.note, flagged = _store_document(conn, task, resp, today)
-            r.note += f" ({_gap_text(gap)})"
+            what, flagged = _store_document(conn, task, resp, today)
+            _add_note(r, f"{what} ({_gap_text(gap)})")
             if flagged:
                 r.updated.append(task.doc[1])
             else:
@@ -278,7 +278,7 @@ def run_cde(conn: psycopg.Connection, fetcher: Fetcher, agency_ids: list[str],
                 # except upcoming ones.
                 state.setdefault("initial", {})[task.agency_id] = [m[0] for m in meetings]
             _mark_success(conn, task.agency_id, len(meetings))
-            r.note = f"read the meeting list ({len(meetings)} meetings; {_gap_text(gap)})"
+            _add_note(r, f"read the meeting list ({len(meetings)} meetings; {_gap_text(gap)})")
         else:
             key, url, label, iso = task.meeting
             date = dt.date.fromisoformat(iso) if iso else None
@@ -299,13 +299,21 @@ def run_cde(conn: psycopg.Connection, fetcher: Fetcher, agency_ids: list[str],
                 r.updated.append(pid)
             else:
                 r.unchanged += 1
-            r.note = f"read the {label} agenda ({len(items)} items; {_gap_text(gap)})"
+            _add_note(r, f"read the {label} agenda ({len(items)} items; {_gap_text(gap)})")
         save_state(conn, state)
         conn.commit()
 
     save_state(conn, state)
     conn.commit()
     return list(results.values())
+
+
+def _add_note(r, text: str) -> None:
+    """With several CDE pages per run, keep every request's note, not just the last."""
+    if r.note and not r.note.startswith("waiting its turn"):
+        r.note = f"{r.note}; then {text}"
+    else:
+        r.note = text
 
 
 def _store_document(conn, task: Task, resp, today: dt.date) -> tuple[str, bool]:

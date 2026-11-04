@@ -136,6 +136,10 @@ def test_pages_per_run_setting(conn, cde_fetcher, monkeypatch):
                   now=Clock(), sleep=waits.append)
     assert cde_fetcher.requests == [SBE_LIST, ACCS_LIST, SBE_SEP]
     assert waits == [90, 90]
+    [r] = paced.run_cde(conn, cde_fetcher, ["sbe"], today=dt.date(2026, 9, 1),
+                        now=lambda: dt.datetime(2026, 9, 2, tzinfo=dt.timezone.utc), sleep=lambda s: None)
+    # Several SBE requests in one run (an agenda, then a document): each is reported.
+    assert r.note.startswith("read the July 8, 2026 agenda") and "; then couldn't download Item 01" in r.note
 
 
 def test_acceptance_by_gap_split_by_origin(conn):
