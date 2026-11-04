@@ -36,7 +36,8 @@ env:
 jobs:
   cloud:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    # Room for a long paced CDE run (up to 100 pages at 30s is ~50 minutes).
+    timeout-minutes: 90
     # Separate queues per job, so an office computer that's switched off
     # never holds up the cloud checks.
     concurrency:

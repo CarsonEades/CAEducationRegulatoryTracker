@@ -41,7 +41,7 @@ from dataclasses import dataclass
 import psycopg
 from psycopg.types.json import Jsonb
 
-from tracker.http import BlockedError, Fetcher, FetchError
+from tracker.http import BlockedError, BudgetExceeded, Fetcher, FetchError
 from tracker.models import Posting
 from tracker.scrapers.cde import ACCS, CPAG, SBE, parse_agenda_page
 
@@ -222,7 +222,9 @@ def run_cde(conn: psycopg.Connection, fetcher: Fetcher, agency_ids: list[str],
     state = load_state(conn)
     t = clock()
 
-    pages = max(1, int(_setting("CDE_PAGES_PER_RUN", 1)))
+    from tracker.http import MAX_CDE_PAGES
+
+    pages = max(1, min(int(_setting("CDE_PAGES_PER_RUN", 1)), MAX_CDE_PAGES))
     page_gap = _setting("CDE_PAGE_GAP_SECONDS", 90)
     min_gap = dt.timedelta(minutes=_setting("CDE_MIN_GAP_MINUTES", 100))
 
@@ -243,6 +245,8 @@ def run_cde(conn: psycopg.Connection, fetcher: Fetcher, agency_ids: list[str],
         r = results[task.agency_id]
         try:
             resp = fetcher.get(task.url)
+        except BudgetExceeded:
+            break  # this run's request allowance is used up; the rest waits for the next run
         except BlockedError as e:
             gap = _log_request(conn, task.url, t, "challenged", str(e)[:500])
             state["challenges"] = state.get("challenges", 0) + 1

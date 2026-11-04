@@ -20,8 +20,20 @@ MAX_BYTES = 40 * 1024 * 1024
 # Hosts that challenge fast clients get a slower pace (seconds between requests).
 HOST_INTERVALS = {"www.cde.ca.gov": 8.0}
 # Hosts that limit how many automated requests they accept get a per-run cap.
-# Documents past the cap are picked up on later runs.
-HOST_BUDGETS = {"www.cde.ca.gov": 20}
+# Requests past the cap wait for a later run. cde.ca.gov follows the paced
+# crawler's CDE_PAGES_PER_RUN (see tracker/paced.py), up to MAX_CDE_PAGES.
+MAX_CDE_PAGES = 100
+
+
+def _cde_budget() -> int:
+    try:
+        pages = int(float(os.environ.get("CDE_PAGES_PER_RUN", "").strip() or 1))
+    except ValueError:
+        pages = 1
+    return max(1, min(pages, MAX_CDE_PAGES))
+
+
+HOST_BUDGETS = {"www.cde.ca.gov": _cde_budget()}
 # Bot-protection services some agency sites redirect to instead of serving the page.
 CHALLENGE_HOSTS = ("validate.perfdrive.com",)
 

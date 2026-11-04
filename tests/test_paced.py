@@ -115,6 +115,34 @@ def test_extra_pages_stop_when_nothing_is_due(conn, cde_fetcher, monkeypatch):
     assert len(cde_fetcher.requests) - before == 1 and waits == []
 
 
+def test_request_cap_stops_run_without_losing_documents(conn, cde_fetcher, monkeypatch):
+    from tracker.http import BudgetExceeded
+
+    monkeypatch.setattr(paced, "LISTING_REFRESH_HOURS", 1000)
+    clock = Clock()
+    for _ in range(6):  # lists and agendas
+        run(conn, cde_fetcher, clock)
+        clock.advance(hours=2)
+    real_get = cde_fetcher.get
+    cde_fetcher.get = lambda url: (_ for _ in ()).throw(BudgetExceeded("request limit reached"))
+    run(conn, cde_fetcher, clock)
+    cde_fetcher.get = real_get
+    # Nothing was marked as failed: the documents are still queued for the next run.
+    assert conn.execute("""select count(*) from documents where fetch_error like 'request limit%'""").fetchone()[0] == 0
+    assert paced.next_document(conn, ["sbe", "accs"], dt.date(2026, 9, 1)) is not None
+
+
+def test_cde_request_cap_follows_pages_setting(monkeypatch):
+    from tracker import http
+
+    monkeypatch.setenv("CDE_PAGES_PER_RUN", "40")
+    assert http._cde_budget() == 40
+    monkeypatch.setenv("CDE_PAGES_PER_RUN", "5000")
+    assert http._cde_budget() == http.MAX_CDE_PAGES
+    monkeypatch.setenv("CDE_PAGES_PER_RUN", "")
+    assert http._cde_budget() == 1
+
+
 def test_waits_for_minimum_gap(conn, cde_fetcher, monkeypatch):
     monkeypatch.setenv("CDE_MIN_GAP_MINUTES", "100")
     clock = Clock()
