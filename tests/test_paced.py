@@ -74,7 +74,7 @@ def test_agenda_items_stored_without_downloading_documents(conn, cde_fetcher):
 
 
 def test_spare_slots_download_documents_nearest_meeting_main_docs_first(conn, cde_fetcher, monkeypatch):
-    monkeypatch.setattr(paced, "LISTING_REFRESH_HOURS", 1000)
+    monkeypatch.setattr(paced, "LISTING_REFRESH_HOURS", {"sbe": 1000, "accs": 1000})
     item01 = "https://www.cde.ca.gov/be/ag/ag/yr26/documents/sep26item01.docx"
     cde_fetcher.pages[item01] = ("The board will hear a charter petition appeal.", "text/plain")
     clock = Clock()
@@ -101,7 +101,7 @@ def test_spare_slots_download_documents_nearest_meeting_main_docs_first(conn, cd
 
 
 def test_extra_pages_stop_when_nothing_is_due(conn, cde_fetcher, monkeypatch):
-    monkeypatch.setattr(paced, "LISTING_REFRESH_HOURS", 1000)
+    monkeypatch.setattr(paced, "LISTING_REFRESH_HOURS", {"sbe": 1000, "accs": 1000})
     monkeypatch.setattr(paced, "next_document", lambda *a: None)  # no documents left
     clock = Clock()
     for _ in range(6):  # lists and agendas
@@ -118,7 +118,7 @@ def test_extra_pages_stop_when_nothing_is_due(conn, cde_fetcher, monkeypatch):
 def test_request_cap_stops_run_without_losing_documents(conn, cde_fetcher, monkeypatch):
     from tracker.http import BudgetExceeded
 
-    monkeypatch.setattr(paced, "LISTING_REFRESH_HOURS", 1000)
+    monkeypatch.setattr(paced, "LISTING_REFRESH_HOURS", {"sbe": 1000, "accs": 1000})
     clock = Clock()
     for _ in range(6):  # lists and agendas
         run(conn, cde_fetcher, clock)
@@ -199,17 +199,39 @@ def test_challenge_backs_off_and_doubles(conn, cde_fetcher):
     assert [o for o, in conn.execute("select outcome from crawl_log order by id")] == ["challenged"] * 2
 
 
-def test_pages_per_run_setting(conn, cde_fetcher, monkeypatch):
+def test_one_web_page_per_run_then_documents_only(conn, cde_fetcher, monkeypatch):
     monkeypatch.setenv("CDE_PAGES_PER_RUN", "3")
     waits = []
     paced.run_cde(conn, cde_fetcher, ["sbe", "accs"], today=dt.date(2026, 9, 1),
                   now=Clock(), sleep=waits.append)
-    assert cde_fetcher.requests == [SBE_LIST, ACCS_LIST, SBE_SEP]
+    # The ACCS list and SBE agendas are due too, but they're web pages: one per run.
+    assert cde_fetcher.requests == [SBE_LIST] and waits == []
+    item01 = "https://www.cde.ca.gov/be/ag/ag/yr26/documents/sep26item01.docx"
+    cde_fetcher.pages[item01] = ("Item 1 text", "text/plain")
+    [r] = paced.run_cde(conn, cde_fetcher, ["sbe"], today=dt.date(2026, 9, 1),
+                        now=lambda: dt.datetime(2026, 9, 2, tzinfo=dt.timezone.utc), sleep=waits.append)
+    # The next run reads one agenda, then spends its other pages on documents, each reported.
+    pages = cde_fetcher.requests[1:]
+    assert pages[:2] == [SBE_SEP, item01] and len(pages) == 3
+    assert pages[2].endswith((".docx", ".pdf", ".pptx"))
     assert waits == [90, 90]
+    assert r.note.startswith("read the September 9, 2026 agenda")
+    assert "; then downloaded Item 01" in r.note and "; then couldn't download" in r.note
+
+
+def test_challenge_report_keeps_earlier_requests(conn, cde_fetcher, monkeypatch):
+    monkeypatch.setenv("CDE_PAGES_PER_RUN", "2")
+    paced.run_cde(conn, cde_fetcher, ["sbe"], today=dt.date(2026, 9, 1), now=Clock(), sleep=lambda s: None)
+
+    def blocked(url):
+        raise BlockedError("redirected to a bot-protection challenge")
+
+    real_get = cde_fetcher.get
+    cde_fetcher.get = lambda url: real_get(url) if url == SBE_SEP else blocked(url)
     [r] = paced.run_cde(conn, cde_fetcher, ["sbe"], today=dt.date(2026, 9, 1),
                         now=lambda: dt.datetime(2026, 9, 2, tzinfo=dt.timezone.utc), sleep=lambda s: None)
-    # Several SBE requests in one run (an agenda, then a document): each is reported.
-    assert r.note.startswith("read the July 8, 2026 agenda") and "; then couldn't download Item 01" in r.note
+    assert r.backing_off and r.error.startswith("challenged by CDE bot protection on the document")
+    assert "(earlier this run: read the September 9, 2026 agenda" in r.error
 
 
 def test_acceptance_by_gap_split_by_origin(conn):

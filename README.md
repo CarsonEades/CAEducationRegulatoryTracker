@@ -36,20 +36,27 @@ Agencies that aren't automated show in the dashboard as "Not automated yet: chec
 
 ### cde.ca.gov (SBE, ACCS, CPAG)
 
-The site uses Radware bot protection, which challenges requests made seconds apart. Spaced-out
-requests with the tracker's User-Agent are mostly accepted, from GitHub's servers as well as from
-an office computer, so all three agencies are checked by GitHub's servers. Keep the pacing
-conservative: on Nov 4, 2026, after roughly 100 requests overnight at 25–30 seconds apart, CDE
-challenged a request 26 seconds after the first request of the next morning.
+The site uses Radware bot protection. Reading a web page (a meeting list or agenda) sets
+Radware's tracking cookies, and a second web page in the same visit is challenged unless a
+browser has run Radware's script, however far apart the two requests are. This was confirmed in
+November 2026: second pages were challenged at 26, 62 and 92 seconds. Documents (PDF, Word,
+PowerPoint) aren't checked; dozens in a row were all accepted.
+
+So **each run reads at most one web page**, and any further pages that run are documents. The
+tracker doesn't discard or reset the cookies to get past the check. It identifies itself honestly
+and stays within what the site allows. All three agencies are checked from GitHub's servers.
 
 **What gets read.** The three agencies share one queue (`tracker/paced.py`), stored in the
 database, in this order:
 1. meeting lists not read yet
 2. agenda pages not read yet
-3. meeting lists due for a refresh (every 8 hours)
+3. meeting lists due for a refresh: SBE every 12 hours, ACCS and CPAG every 24 hours
 4. re-checks of upcoming agendas (every 20 hours)
 5. item documents: nearest upcoming meeting first, main item documents before attachments;
    Word, PDF and PowerPoint; meetings within 60 days
+
+Steps 1–4 are web pages, so only a run's first page can be one of them. With about 8 runs on a
+weekday, a newly posted agenda is usually read within a few hours.
 
 Agenda pages include each item's subject, which keyword matching uses right away. Documents
 become searchable once they're downloaded. A run stops early when nothing is due, so a routine
@@ -59,7 +66,7 @@ run makes about one request, however many pages it's allowed.
 
 | Variable | What it does | Default | Recommended (Nov 2026) |
 |---|---|---|---|
-| `CDE_PAGES_PER_RUN` | Most pages read per run (capped at 100) | 1 | 10 |
+| `CDE_PAGES_PER_RUN` | Most pages read per run (capped at 100); after the first, documents only | 1 | 10 |
 | `CDE_PAGE_GAP_SECONDS` | Wait between pages within a run | 90 | 60 |
 | `CDE_MIN_GAP_MINUTES` | Minimum time between runs that contact CDE | 100 | 90 |
 
@@ -69,9 +76,10 @@ settings doesn't shorten a pause. Challenges appear as warnings on the run, not 
 
 **Monitoring.** Every request is logged in `crawl_log` with the gap since the previous request
 and where it came from. Each run's summary shows how often CDE accepted requests at different
-spacings, and the run's annotations list every page read. If challenges continue at the
-recommended settings, back off further (for example 5 pages per run, 90 seconds apart). After a
-week or more without challenges, you can move back toward 20 pages at 30 seconds.
+spacings, and the run's annotations list every page read. A challenge's warning also lists what
+that agency read earlier in the run. Spacing between pages doesn't prevent challenges on web
+pages, so a lower gap is fine; if documents start being challenged, raise `CDE_PAGE_GAP_SECONDS`
+or lower `CDE_PAGES_PER_RUN`.
 
 **Where it runs.** The `CDE_RUNNER` variable is `cloud` (GitHub's servers) or `office` (a
 self-hosted runner, used only when `USE_OFFICE_RUNNER` is `true`). For a single run, choose

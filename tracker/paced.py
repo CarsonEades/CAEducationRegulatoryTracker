@@ -1,16 +1,25 @@
 """Paced checking of cde.ca.gov (State Board of Education, the Advisory
 Commission on Charter Schools, and the California Practitioners Advisory Group).
 
-cde.ca.gov's bot protection lets an occasional request through but challenges
-several in a row. So each run reads at most a few pages (one by default), taken
-from a small queue:
+cde.ca.gov uses Radware bot protection. Reading a web page (a meeting list or
+agenda) sets Radware's tracking cookies, and a second web page in the same visit
+is challenged unless a browser has run Radware's script, however far apart the
+two are (seen at 26s, 62s and 92s, Nov 2026). Item documents (PDF, DOCX, PPTX)
+aren't checked: dozens in a row at 25-90s apart were all accepted. So each run
+reads at most ONE web page, and any further pages that run are documents. We
+don't discard or reset the cookies to get past the check: the tracker identifies
+itself honestly and stays within what the site allows.
+
+Each run's pages are taken from a small queue:
 
   1. an agency's meeting list that has never been read,
   2. an agenda page that has never been read (newly posted meetings),
-  3. a meeting list not read in LISTING_REFRESH_HOURS,
+  3. a meeting list not read in LISTING_REFRESH_HOURS (per agency),
   4. an upcoming meeting's agenda not re-read in AGENDA_RECHECK_HOURS (revisions),
   5. an item document not downloaded yet (see next_document),
   6. otherwise the meeting list read longest ago.
+
+Steps 1-4 and 6 are web pages, so only the first of a run's pages can be one.
 
 Agenda pages list every item's subject, which keyword matching uses right
 away. Item documents are downloaded one per spare slot: upcoming meetings
@@ -24,7 +33,7 @@ the pacing can be tuned with these environment variables (set as repository
 variables in GitHub):
 
   CDE_MIN_GAP_MINUTES   minimum time between runs that contact CDE (default 100)
-  CDE_PAGES_PER_RUN     pages read per run (default 1)
+  CDE_PAGES_PER_RUN     pages read per run (default 1); after the first, documents only
   CDE_PAGE_GAP_SECONDS  wait between pages within one run (default 90)
 
 When a request is challenged, CDE is left alone for 2 hours, doubling with each
@@ -51,7 +60,9 @@ HOST = "www.cde.ca.gov"
 CDE_AGENCIES = {"sbe": SBE, "accs": ACCS, "cpag": CPAG}
 STATE_KEY = "cde"
 RECENT_MEETINGS = 2           # agenda pages tracked per agency
-LISTING_REFRESH_HOURS = 8
+# With one web page per run (about 8 on a weekday), lists can't all be re-read every
+# few hours. CPAG meets a couple of times a year and ACCS every month or two.
+LISTING_REFRESH_HOURS = {"sbe": 12, "accs": 24, "cpag": 24}
 AGENDA_RECHECK_HOURS = 20
 BACKOFF_START = dt.timedelta(hours=2)
 BACKOFF_MAX = dt.timedelta(hours=24)
@@ -89,10 +100,20 @@ def _older_than(stamp: str | None, now: dt.datetime, hours: float) -> bool:
     return t is None or now - t >= dt.timedelta(hours=hours)
 
 
+def _refresh_hours(agency_id: str) -> float:
+    return LISTING_REFRESH_HOURS.get(agency_id, 12)
+
+
 def choose_task(state: dict, agency_ids: list[str], today: dt.date, now: dt.datetime,
-                document: Task | None = None) -> Task:
+                document: Task | None = None, web_page_ok: bool = True) -> Task:
+    """The next page to read. With web_page_ok False (a web page was already read
+    this run), only a document, or a not-due placeholder that ends the run."""
     listings = state.setdefault("listings", {})
     agendas = state.setdefault("agendas", {})
+    if not web_page_ok:
+        if document is not None:
+            return document
+        return Task(agency_ids[0], "listing", CDE_AGENCIES[agency_ids[0]].listing_url, due=False)
 
     def listing(a):
         return Task(a, "listing", CDE_AGENCIES[a].listing_url)
@@ -104,7 +125,7 @@ def choose_task(state: dict, agency_ids: list[str], today: dt.date, now: dt.date
     for a, m in tracked:
         if m[1] not in agendas:
             return Task(a, "agenda", m[1], m)
-    stale = [a for a in agency_ids if _older_than(listings[a]["fetched_at"], now, LISTING_REFRESH_HOURS)]
+    stale = [a for a in agency_ids if _older_than(listings[a]["fetched_at"], now, _refresh_hours(a))]
     if stale:
         return listing(min(stale, key=lambda a: listings[a]["fetched_at"]))
     for a, m in tracked:
@@ -228,6 +249,7 @@ def run_cde(conn: psycopg.Connection, fetcher: Fetcher, agency_ids: list[str],
     page_gap = _setting("CDE_PAGE_GAP_SECONDS", 90)
     min_gap = dt.timedelta(minutes=_setting("CDE_MIN_GAP_MINUTES", 100))
 
+    read_web_page = False  # at most one per run (see the module docstring)
     waiting_until, why = _next_allowed(conn, state, min_gap)
     if waiting_until and t < waiting_until:
         for r in results.values():
@@ -236,7 +258,8 @@ def run_cde(conn: psycopg.Connection, fetcher: Fetcher, agency_ids: list[str],
 
     for i in range(pages):
         t = clock()
-        task = choose_task(state, agency_ids, today, t, next_document(conn, agency_ids, today))
+        task = choose_task(state, agency_ids, today, t, next_document(conn, agency_ids, today),
+                           web_page_ok=not read_web_page)
         if i and not task.due:
             break  # nothing left worth a request; extra pages are only for real work
         if i:
@@ -248,15 +271,18 @@ def run_cde(conn: psycopg.Connection, fetcher: Fetcher, agency_ids: list[str],
         except BudgetExceeded:
             break  # this run's request allowance is used up; the rest waits for the next run
         except BlockedError as e:
-            diag = _diagnostics(fetcher)
-            gap = _log_request(conn, task.url, t, "challenged", f"{e}; {diag}"[:500])
+            gap = _log_request(conn, task.url, t, "challenged", str(e)[:500])
             state["challenges"] = state.get("challenges", 0) + 1
             backoff = min(BACKOFF_START * 2 ** (state["challenges"] - 1), BACKOFF_MAX)
             state["backoff_until"] = (t + backoff).isoformat()
             failures = _mark_failure(conn, task.agency_id, f"CDE challenged the request; retrying after {backoff}")
+            what = {"listing": "meeting list", "agenda": "agenda page"}.get(task.kind, "document")
+            # Keep what this agency read earlier in the run, so the request before the
+            # challenge isn't hidden.
+            earlier = f" (earlier this run: {r.note})" if r.note and not r.skipped else ""
             results[task.agency_id] = AgencyResult(
                 task.agency_id, ok=False,
-                error=f"challenged by CDE bot protection ({_gap_text(gap)}){_bracket(_describe_task(task), diag)}; backing off {backoff}",
+                error=f"challenged by CDE bot protection on the {what} ({_gap_text(gap)}); backing off {backoff}{earlier}",
                 consecutive_failures=failures, backing_off=True)
             break
         except FetchError as e:
@@ -277,8 +303,8 @@ def run_cde(conn: psycopg.Connection, fetcher: Fetcher, agency_ids: list[str],
             conn.commit()
             break
 
-        diag = _diagnostics(fetcher, None if task.kind == "document" else resp.content)
-        gap = _log_request(conn, task.url, t, "ok", diag or None)
+        gap = _log_request(conn, task.url, t, "ok", None)
+        read_web_page |= task.kind != "document"
         state["challenges"] = 0
         state.pop("backoff_until", None)
         state.pop("next_allowed_at", None)  # saved by earlier versions
@@ -287,7 +313,7 @@ def run_cde(conn: psycopg.Connection, fetcher: Fetcher, agency_ids: list[str],
         r.skipped = False
         if task.kind == "document":
             what, flagged = _store_document(conn, task, resp, today)
-            _add_note(r, f"{what} ({_gap_text(gap)}){_bracket(diag)}")
+            _add_note(r, f"{what} ({_gap_text(gap)})")
             if flagged:
                 r.updated.append(task.doc[1])
             else:
@@ -303,7 +329,7 @@ def run_cde(conn: psycopg.Connection, fetcher: Fetcher, agency_ids: list[str],
                 # except upcoming ones.
                 state.setdefault("initial", {})[task.agency_id] = [m[0] for m in meetings]
             _mark_success(conn, task.agency_id, len(meetings))
-            _add_note(r, f"read the meeting list ({len(meetings)} meetings; {_gap_text(gap)}){_bracket(diag)}")
+            _add_note(r, f"read the meeting list ({len(meetings)} meetings; {_gap_text(gap)})")
         else:
             key, url, label, iso = task.meeting
             date = dt.date.fromisoformat(iso) if iso else None
@@ -324,35 +350,13 @@ def run_cde(conn: psycopg.Connection, fetcher: Fetcher, agency_ids: list[str],
                 r.updated.append(pid)
             else:
                 r.unchanged += 1
-            _add_note(r, f"read the {label} agenda ({len(items)} items; {_gap_text(gap)}){_bracket(diag)}")
+            _add_note(r, f"read the {label} agenda ({len(items)} items; {_gap_text(gap)})")
         save_state(conn, state)
         conn.commit()
 
     save_state(conn, state)
     conn.commit()
     return list(results.values())
-
-
-def _diagnostics(fetcher, page: bytes | None = None) -> str:
-    """Temporary: what CDE's response looked like (status, redirects, cookie
-    names sent and set, bot-protection script markers in a page), to work out
-    why a second page in a run gets challenged."""
-    from tracker.http import bot_markers
-
-    text = getattr(fetcher, "trace_text", lambda: "")()
-    if page is not None:
-        found = bot_markers(page)
-        text += f"; page markers: {', '.join(found) if found else 'none'}"
-    return text.lstrip("; ")
-
-
-def _bracket(*parts: str) -> str:
-    text = "; ".join(p for p in parts if p)
-    return f" [{text}]" if text else ""
-
-
-def _describe_task(task: "Task") -> str:
-    return {"listing": "meeting list", "agenda": "agenda page"}.get(task.kind, "document")
 
 
 def _add_note(r, text: str) -> None:

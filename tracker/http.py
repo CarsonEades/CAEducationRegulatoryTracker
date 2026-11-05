@@ -36,11 +36,6 @@ def _cde_budget() -> int:
 HOST_BUDGETS = {"www.cde.ca.gov": _cde_budget()}
 # Bot-protection services some agency sites redirect to instead of serving the page.
 CHALLENGE_HOSTS = ("validate.perfdrive.com",)
-# Hosts whose responses are traced for diagnosing bot-protection challenges:
-# status codes, redirects, and the *names* (never values) of cookies sent and set.
-TRACE_HOSTS = {"www.cde.ca.gov"}
-# Text in a page that shows a bot-protection script was included (lowercase).
-BOT_MARKERS = (b"perfdrive", b"radware", b"rdwr", b"shieldsquare", b"__uzm")
 
 
 class FetchError(Exception):
@@ -62,23 +57,12 @@ class Fetcher:
         self._last_hit: dict[str, float] = {}
         self._count: dict[str, int] = {}
         self._blocked: set[str] = set()
-        self.trace: list[str] = []  # the last traced request's responses (see TRACE_HOSTS)
         self.client = httpx.Client(
             headers={"User-Agent": USER_AGENT},
             follow_redirects=True,
             timeout=timeout,
-            event_hooks={"response": [self._on_response]},
+            event_hooks={"response": [self._check_challenge]},
         )
-
-    def _on_response(self, resp: httpx.Response) -> None:
-        if resp.request.url.host in TRACE_HOSTS:
-            self.trace.append(_describe(resp))
-        self._check_challenge(resp)
-
-    def trace_text(self) -> str:
-        """What the last traced request looked like, e.g.
-        'HTTP 200; cookies sent: none; set: __uzma, __uzmb'."""
-        return " → ".join(self.trace)
 
     @staticmethod
     def _check_challenge(resp: httpx.Response) -> None:
@@ -108,8 +92,6 @@ class Fetcher:
         if self._count.get(host, 0) >= HOST_BUDGETS.get(host, 10**9):
             raise BudgetExceeded(f"request limit for {host} reached this run; will retry next run")
         self._count[host] = self._count.get(host, 0) + 1
-        if host in TRACE_HOSTS:
-            self.trace = []
         try:
             return self._request(method, url, **kwargs)
         except BlockedError:
@@ -154,25 +136,3 @@ class Fetcher:
 
     def close(self) -> None:
         self.client.close()
-
-
-def _cookie_names(names: list[str]) -> str:
-    return ", ".join(sorted(set(names))) or "none"
-
-
-def _describe(resp: httpx.Response) -> str:
-    """One response, for a trace: status, redirect target host, cookie names."""
-    sent = [c.split("=", 1)[0].strip()
-            for c in resp.request.headers.get("cookie", "").split(";") if c.strip()]
-    got = [c.split("=", 1)[0].strip() for c in resp.headers.get_list("set-cookie")]
-    text = f"HTTP {resp.status_code}"
-    if resp.is_redirect:
-        target = urlsplit(resp.headers.get("location", "")).netloc
-        text += f" (redirect{' to ' + target if target else ''})"
-    return f"{text}; cookies sent: {_cookie_names(sent)}; set: {_cookie_names(got)}"
-
-
-def bot_markers(content: bytes) -> list[str]:
-    """Which BOT_MARKERS appear in a page."""
-    low = content.lower()
-    return [m.decode() for m in BOT_MARKERS if m in low]

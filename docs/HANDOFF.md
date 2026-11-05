@@ -140,17 +140,32 @@ GitHub Actions (cron) → Python scrapers → Supabase Postgres ← React dashbo
     (ACCS, 26s later) was challenged. Run size wasn't the trigger, since it was only the
     second request. Likely causes are the overnight volume or that run's GitHub server; one
     challenge can't tell them apart. The owner lowered the settings to 10 pages at 60s,
-    with 90 minutes between runs.
+    with 90 minutes between runs, then raised the gap further.
+  - **Cause confirmed (Nov 4–5):** temporary diagnostics recorded cookie *names* and redirects.
+    Reading a web page sets Radware's cookies (`__uzma`…`__uzmf`, `uzmx`), and the page
+    includes its `perfdrive` script. The next web page, sent with those cookies, was redirected
+    to `validate.perfdrive.com`, even 92s later. Documents only set a load-balancer cookie
+    and 10 in a row at ~90s were accepted. So Radware expects its browser script to have run
+    before a second page. **Fix: at most one web page per run; further pages are documents.**
+  - **Decision: don't drop or reset the cookies to slip past the check.** That would be evading
+    the site's bot check (the same reasoning as not faking browser headers). It could also get
+    the User-Agent or GitHub's addresses blocked outright. If more speed is ever needed, set
+    `TRACKER_USER_AGENT` with an organization and contact, and ask CDE to allowlist it or for
+    a feed.
 - **How the crawler works:**
   - It uses a rotating queue stored in `crawl_state`, in this order:
     1. unread meeting lists
     2. unread agendas
-    3. lists due for a refresh (every 8h)
+    3. lists due for a refresh (`LISTING_REFRESH_HOURS`: SBE 12h, ACCS and CPAG 24h)
     4. upcoming-agenda rechecks (every 20h)
     5. item documents: nearest upcoming meeting first, main docs before
        attachments/handouts/slides; DOCX, PDF and PPTX only; within 60 days
+  - Steps 1–4 are web pages: **only a run's first page can be one** (`web_page_ok` in
+    `choose_task`). Later pages in the run are documents, or the run stops.
   - Extra pages stop when nothing is due, so routine runs make about 1 request, whatever
     `CDE_PAGES_PER_RUN` is.
+  - A challenge's warning includes what that agency read earlier in the run ("earlier this
+    run: …"), so the request before the challenge is visible.
   - Every request is logged in `crawl_log`, with the gap since the previous request and its
     origin (`github`, `office` or `local`).
   - Each run summary shows acceptance by spacing and origin.
@@ -256,22 +271,10 @@ GitHub Actions (cron) → Python scrapers → Supabase Postgres ← React dashbo
 
 ## Open items and ideas
 
-- **Diagnosing CDE's second-page challenges (started Nov 4).** In every accepted multi-request
-  run so far, at most one request was an HTML page (meeting list or agenda); the rest were
-  documents. Both challenged runs (Nov 4, 14:13 and 17:52 UTC) were a meeting list followed by
-  another meeting list, challenged at 26s and at 62s, so the spacing doesn't seem to matter.
-  Theory: Radware checks HTML pages, lets the first through, and expects its browser script to
-  have run before the next one. To check it, each CDE request's note (and `crawl_log.detail`)
-  now records the status, redirects, cookie *names* sent and set, and, for pages, whether
-  Radware's script markers appear (`_diagnostics` in `paced.py`, tracing in `http.py`).
-  If the first page sets Radware cookies and the challenged second page sends them back, the
-  planned fix is at most one HTML page per run, with any further pages being documents. Remove
-  the diagnostics once that's settled.
-
 - Confirm the rename follow-ups above are done.
-- **Watch for CDE challenges at 10 pages and 60s** (set Nov 4). If they continue, back off
-  further (e.g. 5 pages at 90s). After a week or more without challenges, the pace can move
-  back toward 20 pages at 30s.
+- **Watch for CDE challenges after the one-web-page-per-run fix** (Nov 5). There should be
+  none. If documents start being challenged, raise `CDE_PAGE_GAP_SECONDS` or lower
+  `CDE_PAGES_PER_RUN`. If lists or agendas fall behind, check `LISTING_REFRESH_HOURS`.
 - **Remove the unused self-hosted runner** (security, since the repo is public).
 - **Possible improvements, none started:**
   - conditional GETs (ETag/If-Modified-Since) to make re-checks cheaper for sites
