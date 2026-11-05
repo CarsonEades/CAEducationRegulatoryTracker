@@ -57,6 +57,7 @@ export interface Doc {
   label: string | null;
   fetch_error: string | null;
   text: string | null;
+  sha256: string | null;
 }
 
 export interface Match {

@@ -240,13 +240,15 @@ def test_migrations_apply_on_top_of_hand_applied_schema(conn):
 
     # Production state: the first migration was run by hand in the SQL editor,
     # nothing recorded, later ones not applied yet.
-    conn.execute("drop table crawl_log, crawl_state")
+    conn.execute("drop table crawl_log, crawl_state, posting_versions")
+    conn.execute("drop function record_posting_version, posting_snapshot cascade")
     conn.commit()
     conn.execute("drop table if exists schema_migrations")
     conn.commit()
-    assert migrate(conn) == ["20261031000001_paced_crawling.sql", "20261102000001_crawl_log_origin.sql"]
+    later = ["20261031000001_paced_crawling.sql", "20261102000001_crawl_log_origin.sql",
+             "20261105000001_posting_versions.sql"]
+    assert migrate(conn) == later
     names = {r[0] for r in conn.execute("select name from schema_migrations")}
-    assert names == {"20261030000001_init.sql", "20261031000001_paced_crawling.sql",
-                     "20261102000001_crawl_log_origin.sql"}
+    assert names == {"20261030000001_init.sql", *later}
     assert migrate(conn) == []
     assert conn.execute("select to_regclass('public.crawl_log') is not null").fetchone()[0]

@@ -2,21 +2,23 @@ import { useState } from "react";
 import { supabase } from "../supabase";
 import type { Doc, Item, Keyword, Match, PostingRow, Review } from "../types";
 import { Highlight, StatusBadge, fmtDate, fmtDateTime, keywordRegex, must, useLoad } from "../util";
+import { type Changes, type Version, diff, isEmpty, snapshotAtReview } from "../changes";
 
 export default function PostingPage({ id, userId }: { id: number; userId: string }) {
   const [note, setNote] = useState("");
   const [onlyHits, setOnlyHits] = useState(false);
 
   const { data, error, reload } = useLoad(async () => {
-    const [posting, items, docs, matches, reviews, keywords] = await Promise.all([
+    const [posting, items, docs, matches, reviews, keywords, versions] = await Promise.all([
       supabase.from("posting_status").select("*").eq("id", id).single(),
       supabase.from("items").select("*").eq("posting_id", id).order("position"),
-      supabase.from("documents").select("id, item_position, url, label, fetch_error, text")
+      supabase.from("documents").select("id, item_position, url, label, fetch_error, text, sha256")
         .eq("posting_id", id).order("id"),
       supabase.from("matches").select("*").eq("posting_id", id),
       supabase.from("reviews").select("*, profiles(email, display_name)").eq("posting_id", id)
         .order("reviewed_at", { ascending: false }),
       supabase.from("keywords").select("*"),
+      supabase.from("posting_versions").select("changed_at, snapshot").eq("posting_id", id),
     ]);
     return {
       posting: must(posting) as PostingRow,
@@ -25,14 +27,22 @@ export default function PostingPage({ id, userId }: { id: number; userId: string
       matches: must(matches) as Match[],
       reviews: must(reviews) as Review[],
       keywords: must(keywords) as Keyword[],
+      // Missing until the database has the history table; the page works without it.
+      versions: versions.error ? null : (versions.data as Version[]),
     };
   }, [id]);
 
   if (error) return <p className="error">{error}</p>;
   if (!data) return null;
-  const { posting: p, items, docs, matches, reviews, keywords } = data;
+  const { posting: p, items, docs, matches, reviews, keywords, versions } = data;
 
   const kwById = new Map(keywords.map((k) => [k.id, k]));
+  // Only for "Updated since review": what changed since the last review.
+  const reviewedSnapshot = p.status === "updated" && versions
+    ? snapshotAtReview(versions, p.last_reviewed_at) : null;
+  const changes = reviewedSnapshot
+    ? diff(reviewedSnapshot, { title: p.title, meeting_date: p.meeting_date, items, docs, matches }, kwById)
+    : null;
   const patterns = [...new Set(matches.map((m) => m.keyword_id))]
     .map((k) => kwById.get(k)).filter(Boolean).map((k) => keywordRegex(k!));
   const matchedItems = new Set(matches.filter((m) => m.item_id).map((m) => m.item_id));
@@ -65,6 +75,11 @@ export default function PostingPage({ id, userId }: { id: number; userId: string
         {p.last_changed_at !== p.first_seen_at && <span className="muted">Changed {fmtDateTime(p.last_changed_at)}</span>}
         {p.url && <a href={p.url} target="_blank" rel="noreferrer">Open on agency site ↗</a>}
       </p>
+
+      {p.status === "updated" && versions && (
+        <ChangesSinceReview changes={changes} reviewedAt={p.last_reviewed_at}
+                            reviewedBy={p.last_reviewed_by_name || p.last_reviewed_by_email} />
+      )}
 
       <section className="review-box">
         <textarea placeholder="Optional note (e.g. 'Item 5 is the Acme appeal, flagged for legal')"
@@ -116,10 +131,18 @@ export default function PostingPage({ id, userId }: { id: number; userId: string
           </label>
           <ol className="items">
             {items.filter((i) => !onlyHits || matchedItems.has(i.id)).map((i) => (
-              <li key={i.id} id={`item-${i.id}`} className={matchedItems.has(i.id) ? "hit" : ""}>
-                <div><b>{i.number}</b> <Highlight text={i.title} patterns={patterns} /></div>
+              <li key={i.id} id={`item-${i.id}`}
+                  className={[matchedItems.has(i.id) ? "hit" : "", changes?.itemStatus.has(i.id) ? "changed" : ""].join(" ").trim()}>
+                <div>
+                  {changes?.itemStatus.get(i.id) && (
+                    <span className="badge status-updated">
+                      {changes.itemStatus.get(i.id) === "new" ? "New since review" : "Changed since review"}
+                    </span>
+                  )}{" "}
+                  <b>{i.number}</b> <Highlight text={i.title} patterns={patterns} />
+                </div>
                 {i.description && <p><Highlight text={i.description} patterns={patterns} /></p>}
-                {(docsByItem.get(i.position) ?? []).map((d) => <DocLink key={d.id} d={d} />)}
+                {(docsByItem.get(i.position) ?? []).map((d) => <DocLink key={d.id} d={d} change={changes?.docStatus.get(d.id)} />)}
               </li>
             ))}
           </ol>
@@ -129,18 +152,83 @@ export default function PostingPage({ id, userId }: { id: number; userId: string
       {generalDocs.length > 0 && (
         <section>
           <h2>Documents</h2>
-          <ul>{generalDocs.map((d) => <li key={d.id}><DocLink d={d} /></li>)}</ul>
+          <ul>{generalDocs.map((d) => <li key={d.id}><DocLink d={d} change={changes?.docStatus.get(d.id)} /></li>)}</ul>
         </section>
       )}
     </article>
   );
 }
 
-function DocLink({ d }: { d: Doc }) {
+function DocLink({ d, change }: { d: Doc; change?: "new" | "revised" }) {
   return (
     <div className="doc">
+      {change && (
+        <><span className="badge status-updated">{change === "new" ? "New since review" : "Revised since review"}</span>{" "}</>
+      )}
       <a href={d.url} target="_blank" rel="noreferrer">{d.label || d.url.split("/").pop()}</a>
       {d.fetch_error && <span className="muted" title={d.fetch_error}> (text not searchable: {d.fetch_error})</span>}
     </div>
+  );
+}
+
+function scrollToItem(id: number) {
+  document.getElementById(`item-${id}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+}
+
+function ChangesSinceReview({ changes, reviewedAt, reviewedBy }: {
+  changes: Changes | null; reviewedAt: string | null; reviewedBy: string | null;
+}) {
+  const since = <>since {reviewedBy ? `${reviewedBy}'s review` : "the last review"} on {fmtDateTime(reviewedAt)}</>;
+  if (!changes) {
+    return (
+      <section className="changes">
+        <h2>What changed {since}</h2>
+        <p className="muted">
+          This change happened before the tracker started keeping a history of each agenda, so it
+          can't list the specific changes. Check the agenda by hand this time; changes from now on
+          will be listed here.
+        </p>
+      </section>
+    );
+  }
+  const itemLabel = (i: { number: string | null; title: string }) => (i.number ? `${i.number}: ` : "") + i.title;
+  return (
+    <section className="changes">
+      <h2>What changed {since}</h2>
+      {isEmpty(changes) ? (
+        <p className="muted">No differences in the agenda items, documents or keyword matches. The
+          change may have been to something the tracker doesn't show, such as a document link's label.</p>
+      ) : (
+        <ul>
+          {changes.title && <li>Title changed (was “{changes.title}”)</li>}
+          {changes.meetingDate && <li>Date changed (was {changes.meetingDate.from ? fmtDate(changes.meetingDate.from) : "not listed"})</li>}
+          {changes.addedItems.map((i) => (
+            <li key={`a${i.id}`}><b>New item</b>{" "}
+              <a href={`#item-${i.id}`} onClick={(e) => { e.preventDefault(); scrollToItem(i.id); }}>{itemLabel(i)}</a></li>
+          ))}
+          {changes.changedItems.map((i) => (
+            <li key={`c${i.id}`}><b>Changed item</b>{" "}
+              <a href={`#item-${i.id}`} onClick={(e) => { e.preventDefault(); scrollToItem(i.id); }}>{itemLabel(i)}</a></li>
+          ))}
+          {changes.removedItems.map((i) => (
+            <li key={`r${i.position}`}><b>Removed item</b> <s>{itemLabel(i)}</s></li>
+          ))}
+          {changes.addedDocs.map((d) => (
+            <li key={`ad${d.id}`}><b>New document</b>{" "}
+              <a href={d.url} target="_blank" rel="noreferrer">{d.label || d.url.split("/").pop()}</a></li>
+          ))}
+          {changes.revisedDocs.map((d) => (
+            <li key={`rd${d.id}`}><b>Revised document</b>{" "}
+              <a href={d.url} target="_blank" rel="noreferrer">{d.label || d.url.split("/").pop()}</a></li>
+          ))}
+          {changes.removedDocs.map((d) => (
+            <li key={`xd${d.url}`}><b>Removed document</b> <s>{d.label || d.url.split("/").pop()}</s></li>
+          ))}
+          {changes.newHits.map((h) => (
+            <li key={`h${h.term}${h.where}`}><b>New keyword match</b> <span className="badge kw">{h.term}</span> in {h.where}</li>
+          ))}
+        </ul>
+      )}
+    </section>
   );
 }

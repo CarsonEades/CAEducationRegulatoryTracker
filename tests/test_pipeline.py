@@ -266,3 +266,46 @@ def test_check_every_hours_setting(monkeypatch):
     assert pipeline._check_every_hours() == {"eaap": 6.0, "ccee": 4.5}
     monkeypatch.setenv("CHECK_EVERY_HOURS", "")
     assert pipeline._check_every_hours() == {}
+
+
+def test_versions_record_what_a_posting_looked_like_when_reviewed(conn, fetcher, monkeypatch):
+    monkeypatch.setattr(pipeline, "DOC_RECHECK_HOURS", 0)
+    mark_succeeded_before(conn)
+    fetcher.pages[REPORT_URL] = ("report v1", "text/plain")
+    pid = run_once(conn, fetcher, [nov_meeting()]).new[0]
+    conn.commit()
+    uid = add_user(conn)
+    conn.execute("insert into reviews (posting_id, user_id) values (%s, %s)", (pid, uid))
+    conn.commit()
+
+    fetcher.pages[REPORT_URL] = ("report v2 adds a charter item", "text/plain")
+    more = nov_meeting()
+    more.items.append(Item("Charter revocation hearing", number="12"))
+    assert run_once(conn, fetcher, [more]).updated == [pid]
+    conn.commit()  # snapshots are taken at commit, after items and matches are rebuilt
+
+    versions = conn.execute(
+        """select v.snapshot from posting_versions v
+           where v.posting_id = %s order by v.changed_at""", (pid,)).fetchall()
+    assert len(versions) == 2
+    reviewed = conn.execute(
+        """select v.snapshot from posting_versions v join posting_status s on s.id = v.posting_id
+           where v.posting_id = %s and v.changed_at <= s.last_reviewed_at
+           order by v.changed_at desc limit 1""", (pid,)).fetchone()[0]
+    assert [i["number"] for i in reviewed["items"]] == ["1", "5"]
+    assert reviewed["keyword_hits"] == []
+    now = versions[-1][0]
+    assert [i["number"] for i in now["items"]] == ["1", "5", "12"]
+    assert now["documents"][0]["sha256"] != reviewed["documents"][0]["sha256"]
+    assert {(h["term"], h["source"]) for h in now["keyword_hits"]} == {
+        ("charter", "item"), ("charter", "document")}
+
+
+def test_unchanged_rerun_adds_no_version(conn, fetcher):
+    mark_succeeded_before(conn)
+    pid = run_once(conn, fetcher, [nov_meeting(documents=[])]).new[0]
+    conn.commit()
+    run_once(conn, fetcher, [nov_meeting(documents=[])])
+    conn.commit()
+    assert conn.execute("select count(*) from posting_versions where posting_id = %s",
+                        (pid,)).fetchone()[0] == 1

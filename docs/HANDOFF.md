@@ -168,6 +168,16 @@ GitHub Actions (cron) → Python scrapers → Supabase Postgres ← React dashbo
 - **Where it runs:** `CDE_RUNNER` (`office` or `cloud`), or the manual `cde_runner` workflow
   input for a single run. Both runners share one queue in the database.
 
+### Changes since review (`posting_versions`)
+- Items and documents are rebuilt whenever a posting changes, so a separate history keeps a
+  snapshot (title, date, items, documents with content hashes, keyword hits) each time a
+  posting is stored or flagged as changed. It's written by deferred triggers on `postings`, so
+  it captures the state at commit, after items and matches are rebuilt.
+- The agenda page compares the snapshot from the last review with the current agenda for
+  "Updated since review" postings (`web/src/changes.ts`). Items are matched by number, or by
+  title when they have none. A document that was only downloaded later isn't a revision.
+- History started on Nov 5, 2026. Postings that changed before then show a note instead.
+
 ### Other agencies
 - **FCC:** fcc.gov returns "Access Denied" (Akamai) to automated clients. We use the Federal
   Register API (`federalregister.gov/api/v1`) to find "Open Commission Meeting" Sunshine Act
