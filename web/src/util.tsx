@@ -8,6 +8,25 @@ export function fmtDate(d: string | null): string {
   return date.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
 }
 
+/** "09:30:00" -> "9:30 AM". */
+export function fmtTime(t: string | null | undefined): string {
+  if (!t) return "";
+  const [h, m] = t.split(":").map(Number);
+  return new Date(2000, 0, 1, h, m).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+}
+
+/** What a posting's date means, for labels: hearings and meetings vs. publications. */
+export function dateLabel(kind: string, program?: string): string {
+  if (kind === "publication") return "Published";
+  if (kind === "meeting") return program === "budget" ? "Hearing" : "Meeting";
+  return "Dated";
+}
+
+/** Program-specific route prefix: "#/budget/..." for budget, "#/..." for education. */
+export function programPath(program: string | undefined, path: string): string {
+  return program === "budget" ? `#/budget${path ? "/" + path : ""}` : `#/${path}`;
+}
+
 export function fmtDateTime(d: string | null): string {
   if (!d) return "never";
   return new Date(d).toLocaleString(undefined, {

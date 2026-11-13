@@ -10,6 +10,11 @@ class Agency:
     name: str
     short_name: str
     url: str
+    program: str = "education"  # education | budget
+    group: str | None = None    # dashboard heading, e.g. "Assembly Budget"
+    # The listing can legitimately be empty (e.g. a committee page between sessions), so
+    # finding nothing is a warning rather than a failure.
+    may_be_empty: bool = False
 
 
 AGENCIES: list[Agency] = [
@@ -43,4 +48,60 @@ AGENCIES: list[Agency] = [
            "https://oag.ca.gov/initiatives/active-measures"),
 ]
 
+ABGT = "https://abgt.assembly.ca.gov"
+SBUD = "https://sbud.senate.ca.gov"
+ASM, SEN, DOF, LAO = "Assembly Budget", "Senate Budget", "Department of Finance", "Legislative Analyst's Office"
+
+ASSEMBLY_SUBCOMMITTEES = [
+    (1, "Health", "subcommittee-no-1-health/sub-1-hearing-agendas"),
+    (2, "Human Services", "subcommittee-no-2-human-services/sub-2-hearing-agendas"),
+    (3, "Education Finance", "subcommittee-no-3-education-finance/sub-3-hearing-agendas"),
+    (4, "Climate Crisis, Resources, Energy and Transportation",
+     "subcommittee-no-4-climate-crisis-resources-energy-and-transportation/sub-4-hearing-0"),
+    (5, "State Administration", "subcommittee-no-5-state-administration/sub-5-hearing-agendas"),
+    (6, "Public Safety", "subcommittee-no-6-public-safety/sub-6-hearing-agendas"),
+    (7, "Accountability and Oversight",
+     "subcommittee-no-7-accountability-and-oversight/sub-7-hearing-agendas"),
+]
+SENATE_SUBCOMMITTEES = [
+    (1, "Education", "subcommittee-1-education"),
+    (2, "Resources, Environmental Protection and Energy",
+     "subcommittee-2-resources-environmental-protection-and-energy"),
+    (3, "Health and Human Services", "subcommittee-3-health-and-human-services"),
+    (4, "State Administration and General Government",
+     "subcommittee-4-state-administration-and-general-government"),
+    (5, "Corrections, Public Safety, Judiciary, Labor and Transportation",
+     "subcommittee-5-corrections-public-safety-judiciary-labor-and-transportation"),
+]
+
+BUDGET_AGENCIES: list[Agency] = [
+    Agency("abgt_full", "Assembly Budget Committee", "Asm Budget",
+           f"{ABGT}/welcome-assembly-committee-budget/full-budget-committee",
+           "budget", ASM, may_be_empty=True),
+    *[Agency(f"abgt_sub{n}", f"Assembly Budget Subcommittee No. {n} on {name}", f"Asm Sub {n}",
+             f"{ABGT}/sub-committees/{path}", "budget", ASM, may_be_empty=True)
+      for n, name, path in ASSEMBLY_SUBCOMMITTEES],
+    Agency("abgt_reports", "Assembly Budget Committee reports", "Asm Reports", f"{ABGT}/",
+           "budget", ASM),
+    Agency("sbud_full", "Senate Budget and Fiscal Review Committee", "Sen Budget",
+           f"{SBUD}/hearingagendas/full-committee-hearings", "budget", SEN, may_be_empty=True),
+    *[Agency(f"sbud_sub{n}", f"Senate Budget Subcommittee No. {n} on {name}", f"Sen Sub {n}",
+             f"{SBUD}/hearingagendas/{path}", "budget", SEN, may_be_empty=True)
+      for n, name, path in SENATE_SUBCOMMITTEES],
+    Agency("sbud_reports", "Senate Budget highlights and reports", "Sen Reports", f"{SBUD}/",
+           "budget", SEN),
+    Agency("dof_trailer_bills", "Department of Finance trailer bill language", "DOF TBL",
+           "https://dof.ca.gov/esdapp/trailer-bill/", "budget", DOF),
+    Agency("dof_budget", "Governor's Budget, May Revision and Enacted Budget", "DOF Budget",
+           "https://ebudget.ca.gov/home", "budget", DOF),
+    Agency("dof_finance_letters", "Department of Finance Finance Letters", "DOF Letters",
+           "https://dof.ca.gov/budget/budget-details/", "budget", DOF),
+    Agency("lao_budget", "LAO budget publications", "LAO Budget", "https://www.lao.ca.gov/Budget",
+           "budget", LAO),
+    Agency("lao_education", "LAO education publications", "LAO Education",
+           "https://www.lao.ca.gov/Policy-Areas?areaId=4", "budget", LAO),
+]
+AGENCIES += BUDGET_AGENCIES
+
+PROGRAMS = ("education", "budget")
 BY_ID = {a.id: a for a in AGENCIES}

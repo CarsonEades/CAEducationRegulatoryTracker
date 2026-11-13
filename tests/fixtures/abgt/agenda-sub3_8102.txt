@@ -1,0 +1,727 @@
+California State Assembly
+Assembly Budget Agenda
+Assembly Budget Subcommittee No. 3
+on Education Finance
+Assemblymember David Alvarez, Chair
+Tuesday, May 19, 2026
+9:00 A.M. – State Capitol, Rm 447
+May Revise – Part 1
+Proposition 98 and Higher Education Proposals
+ITEMS TO BE HEARD
+Item Description Page
+Proposition 98: All Agencies 3
+Issues 1. Proposition 98 May Revision Proposals
+6870 California Community Colleges 5
+Issue 2. May Revision Budget Proposals 5
+6980 Student Aid Commission 8
+Issue 3. Workforce Pell Implementation 8
+Issue 4. Student Aid Operations Funding and Cybersecurity 10
+6440 University of California 14
+5. In-State Enrollment Buyout and Enrollment Targets 14
+6120 California State Library 19
+6440 University of California 19
+6600 College of the Law, San Francisco 19
+6610 California State University 19
+6645 CSU Health Benefits for Retired Annuitants 19
+6870 Capital Outlay, California Community Colleges 19
+Issue 6. Other May Revision Budget Proposals 19
+Public Comment will be taken in person at the May 19, 9:00am Hearing, for Issues 1
+through 6, and again at the May 20, 9:00am Hearing for Issues 7 and 8.
+Subcommittee No. 3 on Education Finance May 19, 2026
+May Revise – Part 2: PreK-12 Proposals
+(To begin immediately upon completion of Part 1, or on Wednesday, May 20th at
+the 9:00am Hearing, whichever comes first)
+ITEMS TO BE HEARD
+Item Description Page
+6100 California Department of Education 22
+7760 Office of Public School Construction 22
+6360 Commission on Teacher Credentialing 22
+6870 California Community Colleges 22
+0985 California School Finance Authority 22
+Issue 7. May Revision of January PreK-12 Funding & Trailer Bill 22
+Proposals
+Issue 8. New May Revision PreK-12 Trailer Bill Proposals 28
+Assembly Budget Committee 2
+Subcommittee No. 3 on Education Finance May 19, 2026
+Proposition 98 Overview – All Departments
+Issue 1: Proposition 98 May Revision Proposals
+This panel will hear the May Revision proposals and assumptions impacting the Proposition 98
+guarantee calculation, including the Proposition 98 Rainy Day Fund.
+Panel
+• Alex Shoap, Department of Finance (DOF)
+• Kenneth Kapphahn, Legislative Analyst’s Office (LAO)
+Background
+Proposition 98 Funding: Early Education, TK-12, and Community Colleges
+• Estimates a Proposition 98 funding level of $124.9 billion in 2024-25, $125.1 billion in
+2025-26, and $127.1 billion in the 2026-27 Budget Year.
+• Estimates $127.1 billion for Proposition 98 funding for 2026-27, which meets the Test
+One guarantee level, for state preschool, TK-12 public education, and community
+colleges.
+• Proposes the creation of approximately $3.9 billion in one-time, 2025-26 Proposition 98
+“settle-up” funding due to revenue estimate uncertainties.
+• Estimates an increase in Proposition 98 funding of $24.3 billion over the three-year
+period, compared to the enacted Budget.
+• Increases the 2024-25 Maintenance Factor payment to a total of $8.3 billion, which fully
+funds the obligation.
+• Increases the projected “Proposition 98 Rainy Day Fund”, the Public School System
+Stabilization Account, to a total of $10.3 billion through the Budget year. Projects a revised
+$8.7 billion in mandatory contributions across the three year budget window. Proposes a
+discretionary $1.6 billion deposit in the 2025-26 fiscal year.
+This level of Prop 98 Rainy Day funding triggers the statutory 10% cap on local school
+district reserves in the current and 2026-27 fiscal years.
+• Pays off all Proposition 98 funding deferrals in the Budget Year.
+Assembly Budget Committee 3
+Subcommittee No. 3 on Education Finance May 19, 2026
+Suggested Questions
+1. What is the Administration’s reasoning behind the proposed $3.9 billion in Current Year
+revenues settle-up? Is there a methodology based on volatility of revenue projections at
+this time?
+2. What is the Administration’s reasoning behind the $10.3 billion Prop 98 Rainy Day Fund
+proposal? Is there a methodology based on multi-year risk to ongoing Prop 98 growth
+versus ongoing costs?
+Staff Recommendation: Hold Open.
+Assembly Budget Committee 4
+Subcommittee No. 3 on Education Finance May 19, 2026
+6870 – California Community Colleges
+Issue 2: May Revision Budget Proposals
+The May Revision proposes providing a “Super Cola” to the Student Success Funding Formula
+with the majority of the additionally projected reflecting ongoing Proposition 98 funding.
+Panel
+• Phil Osborn, Department of Finance
+• Imran Majid, California Community Colleges
+• Lisa, Qing, Legislative Analyst’s Office
+May Revision Proposals
+$218 million in new Proposition 98 Funding
+The May Revision includes about $218 million in additional Proposition 98 funds for Community
+Colleges, of which $197 million in provided for ongoing COLA funding, with a proposed 4.31
+percent “Super COLA” for the Student Centered Funding Formula. The LAO chart below details
+the funding provided for new programs in both the January budget and the May Revision:
+Assembly Budget Committee 5
+Subcommittee No. 3 on Education Finance May 19, 2026
+Assembly Budget Committee 6
+Subcommittee No. 3 on Education Finance May 19, 2026
+Adult Learner Demonstration Project
+There is only one major new one-time Proposition 98 investment in the May Revision, $9.7
+million to support the Adult Learner Demonstration Project. According to the Department of
+Finance, this program provides comprehensive services to assist low-income adult workers
+move into stable and higher-paying jobs.
+Parental Leave Proposal
+The May Revision includes a proposal to require school and college districts to provide 14 weeks
+of paid pregnancy disability leave. Part of the rationale for the Super COLA is to offset expected
+costs from this new requirement. Because this policy change is proposed for both TK-12 and
+Community Colleges, this issue will be discussed in the Significant Trailer Bill items (Issue 8)
+later in this agenda.
+Staff Comment
+The Subcommittee has heard consistent feedback from stakeholders across the state that were
+hopeful that the May Revision may provide additional funding for enrollment growth to help
+colleges that have been successful in growing and attracting new students. Instead, the May
+Revision has chosen to increase the COLA with almost all ongoing funding. The Subcommittee
+could revisit or modify how COLA or other ongoing programs are funded if funding growth is a
+higher priority.
+The Subcommittee was hoping to change the current enrollment funding methodology to allow
+funding to materialize quickly after growth occurs for districts that have been successful in
+attracting new students. The current three-year average approach results in a multi-year lag in
+funding that disincentivizes districts from growing, which is counter to the Assembly’s goal to
+expand access. Without ongoing funding, there are few tools available to advance this agenda
+this year.
+Some questions for the Subcommittee to consider:
+1. How did you determine the 4.31 percent level of the COLA?
+2. Why didn’t the Administration provide any additional growth funding in the May Revision?
+3. Why is the Adult Learner Demonstration Project the sole new one-time investment in the
+May Revision?
+Staff Recommendation: Hold Open.
+Assembly Budget Committee 7
+Subcommittee No. 3 on Education Finance May 19, 2026
+6980 – Student Aid Commission
+Issue 3: Workforce Pell Implementation
+The May Revision includes a proposal to implement the Workforce Pell provisions of HR 1.
+Panel
+• Jennifer Louie, Department of Finance
+• Dr. Daisy Gonzales, Student Aid Commission
+• Natalie Gonzalez, Legislative Analyst’s Office
+Background
+HR 1 of 2025 included $1.5 billion nationwide for a new Pell grant for students enrolled in short-
+term programs, called the Workforce Pell Grant program. The federal government will begin the
+program on July 1, 2026, but the requirements for participation will be subject to regulations that
+are not expected to be issued until later in the summer.
+Programs that qualify for Workforce Pell provide training and education lasting between eight
+and 14 weeks, or 150 to 599 clock hours of instruction, and must be offered by accredited
+institutions that are eligible for federal financial aid. Each program must confer an industry-
+recognized “stackable” credential that can count as academic credit toward an advanced
+certificate, associate degree or bachelor’s degree in the same field. Programs must have been
+in operation for at least one year before becoming eligible to receive Workforce Pell. The
+Workforce Pell program considers completion rates, job placement rates, and earnings “value”
+threshold in determining which programs may be eligible for an award.
+May Revision Proposal
+The May Revision includes Trailer Bill language and $664,000 one-time General Fund for the
+Student Aid Commission to begin the implementation of Workforce Pell.
+Staff Comment
+The May Revision proposal responds to a timing challenge the state will face in implementing
+the Workforce Pell Program. With the new fiscal year approaching, the State has not authorized
+the basic fiscal infrastructure to implement this new program, yet the state still awaits direction
+from the federal government to articulate the exact resources needs. The Subcommittee needs
+to consider how to take action in the budget that positions the Student Aid Commission to be
+able to quickly implement the new program, but also allows more discussion between the
+Commission, Finance, and other stakeholders on the exact requests and needs as the State’s
+role becomes clearer.
+Assembly Budget Committee 8
+Subcommittee No. 3 on Education Finance May 19, 2026
+It is hard to imagine a one-time allocation being sufficient to implement this new program.
+Workforce Pell requires the Student Aid Commission to work with the Labor Agency and the
+Cradle-to-Career system to collect the data necessary to demonstrate the outcomes required by
+the new program. However, it is also likely that the real resources need won’t be known until
+after implementation has begun.
+In addition to the budget proposal, stakeholders have been working on a policy bill AB 1534
+(Irwin) that includes provisions to implement the Workforce Pell. Since the regulations that
+finalize the federal expectations for Workforce Pell may not be known until after the budget has
+been adopted, the Subcommittee may wish to consider how the state can best create a path for
+implementation that can occur as soon as the state has direction. It may be possible for the
+budget to provide a broad framework to get implementation moving forward, but to defer to the
+policy bill to finalize any details that respond to federal direction.
+Some questions the Subcommittee may wish to consider:
+1. Can you provide an update on the federal government’s implementation of Workforce Pell
+and the expected next steps on implementation?
+2. What is the Student Aid Commission’s plan for administering this new federal program
+and how can we limit risks to students, institutions and California?
+3. How are other states preparing to implement this new program?
+4. Short-term program students have had limited access to state aid, what will be impact of
+Workforce Pell for students?
+5. How would this proposed trailer bill interact with AB 1563? Would it replace the need for
+that bill or would it complement its provisions?
+6. How has the Department of Finance solicited feedback from stakeholders in the
+development of the proposed trailer bill?
+Staff Recommendation: Hold Open.
+Assembly Budget Committee 9
+Subcommittee No. 3 on Education Finance May 19, 2026
+Issue 4: Student Aid Operations Funding and Cybersecurity
+The Student Aid Commission will provide an overview of their operational requests.
+Panel
+• Jennifer Louie, Department of Finance
+• Dr. Daisy Gonzales, Student Aid Commission
+• Natalie Gonzalez, Legislative Analyst’s Office
+May Revision Proposals
+Besides the Workforce Pell program, the Student Aid Commission has a few additional budget
+proposals in the May Revision:
+1. Golden State Teacher Grant Program
+o A decreased of $14,400,000 one-time General Fund to reflect the revised
+estimates for the Golden State Teacher Program authorized in the Budget Act of
+2021.
+o An increase of reimbursement authority by $1,630,000 one-time to reflect available
+Federal Title II, Part A funds to support the Golden State Teacher Grant Program.
+It is also requested that provisional language be added as follows to conform to
+this action: 1.3. Of the reimbursements identified in Schedule (2) of this Item,
+$1,630,000 is for Federal Title II, Part A support for the Golden State Teacher
+Grant Program, pursuant to Article 5.1 (commencing with Section 69617) of
+Chapter 2, of Part 42, of Division 5, of Title 3 of the Education Code and shall be
+available on a one-time basis for encumbrance and expenditure through June 30,
+2030.
+o An increase reimbursement authority by $16,152,000 ongoing to reflect available
+federal Individuals with Disabilities Act (IDEA) funds to support the Golden State
+Teacher Grant Program.
+o An increase to the 2025-26 budget of $11,294,000 one-time to reflect revised
+Golden State Teacher Grant Program estimates in 2025-26.
+o Statutory changes to increase the Golden State Teacher Grant Program award
+amount for recipients earning a special education credential to $20,0000 and
+authorizes the California Student Aid Commission to issue new awards associated
+with any unexpended General Fund from the Budget Act of 2025.
+Assembly Budget Committee 10
+Subcommittee No. 3 on Education Finance May 19, 2026
+2. Caseload Estimate Changes
+o Middle Class Scholarship Program:
+▪ Decreased by $90,446,000 one-time General Fund to reflect the revised
+estimate for awards issued in the 2025-26 academic year for awards at a
+level of 35 percent of unmet need of the total cost of attendance for eligible
+University of California and California State University resident
+undergraduate students as specified in the Budget Act of 2025 (Chs. 4 and
+5, Stats. 2025).
+▪ Increase of $10,576,000 ongoing General Fund to reflect the revised
+estimate for the Middle Class Scholarship program in 2027-28 for awards
+issued in 2026-27 for a total of $523,614,000. This revised estimate
+maintains the Governor’s Budget proposal to support 17.5 percent of total
+unmet need.
+▪ Budget Bill Language to authorize a loan from the General Fund for
+cashflow purposes to cover the cost of Middle Class Scholarship awards
+issued in 2026–27.
+o Cal Grant Program: A decreased of $31,455,000 ongoing General Fund to reflect
+revised Cal Grant program estimates starting in 2026-27. Compared to the
+Governor’s Budget, it is also requested that the item be increased by $4,761,000
+one-time General Fund for 2025-26 awards.
+o Chafee Grant for Foster Youth Award: An increase reimbursement authority by
+$1,228,000 to reflect revised estimates of available ongoing General Fund for the
+Chafee Grant for Foster Youth Award program.
+o Law Enforcement Personnel Dependents Scholarship Awards: An increased of
+$52,000 ongoing to reflect revised Law Enforcement Personnel Dependents
+Scholarship awards in 2026-27.
+o Cal-HBCU Transfer Grant Program: A decreased of $200,000 ongoing to reflect
+revised estimates for the Cal-HBCU Transfer Grant Program. Compared to the
+Governor’s Budget, there is also a $145,000 one-time decreased cost for the
+program in 2025-26.
+o Public Interest Attorney Loan Repayment Program Administration : A decrease of
+$754,000. The adjustment consists of $618,000 ongoing, to reflect the revised
+estimate of $286,000, for the Public Interest Loan Attorney Loan Repayment
+Program, and the removal of $468,000, of which $136,000 is one-time, for a
+technical accounting correction in the Governor’s Budget.
+3. Other Small Administrative Adjustments
+o Adjustment to Department Vacancy Savings and Position Elimination: Reductions
+of $164,000 and 0.5 positions ongoing General Fund to adjust the reductions
+authorized under Control Section 4.12 in the Budget Act of 2024.
+Assembly Budget Committee 11
+Subcommittee No. 3 on Education Finance May 19, 2026
+o Administrative Support for CalKIDS Program: An increase reimbursement
+authority by $10,000 one-time to reflect available General Fund to promote and
+support CalKIDS award recipients in accessing student financial aid. This program
+is a collaboration and partnership between the Scholarshare Investment Board and
+the California Student Aid Commission.
+Staff Comment
+The change to the Golden State Teach Program’s funding and focus reflects the ability of the
+state to leverage federal funding to continue this successful teacher pipeline program. The other
+changes proposed in May are consistent with normal annual caseload and operations
+adjustments.
+Cyber Security Redundant Server
+As noted in a recent article published in the Sacramento Bee, the Student Aid Commission had
+requested funding to continue existing cyber security resources for its database that was not
+included in the budget. Subcommittee staff requested the Commission provide the committee
+with the proposal. The summary for that Budget Change Proposal is quoted below:
+The California Student Aid Commission (Commission) is requesting ongoing funding of
+$92,000 to maintain a production cloud-based redundant standby server in 2027-28 and
+ongoing and $224,000 in ongoing funding for 1.0 Information Technology Specialist II
+(ITS II) in 2026-27 and ongoing. Because the California Department of Technology is
+assisting the Commission with a temporary Information Technology Specialist III position,
+the proposed position would not be initiated until September of the Budget Year 2026-27.
+The total impact of this request is $187,000 FY 2026-27 and $316,000 in FY 2027-28 and
+ongoing from the State Operations General Fund.
+Based on the assessment recommendations conducted by California Department of
+Technology (CDT), the implementation of a cloud-based redundant standby server is
+mission critical to prevent loss of data, interruptions in service, data breaches and fraud.
+The ITS II is also a mission-critical position that can provide leadership and technical
+expertise to design, develop, and guide the implementation of complex systems and
+solutions aligned with the Commission’s organizational goals which include the setup,
+configuration, and maintenance of a cloud-based redundant standby server. Our objective
+is to protect students’ data privacy, data security, and prevent data loss. To do so, the
+Commission needs a failover system that ensures uninterrupted access to critical
+systems during outages. The cloud-based redundant standby server will continuously
+monitor the primary environment and automatically switch to a secure backup if a failure
+occurs. This request will allow California to safeguard the integrity and confidentiality of
+Assembly Budget Committee 12
+Subcommittee No. 3 on Education Finance May 19, 2026
+student's information, aligns with CDT Critical Services recommendations, and supports
+compliance with state and federal data privacy standards.
+Staff strongly recommend the budget include $92,000 in funding necessary for this requested
+cloud server back up. This would provide the state with protection to prevent a ransomware
+attack that would allow hostile actors to hold the state’s data hostage, similar to the one
+experience by the Department of Finance in December of 2022. The small requested investment
+would substantially reduce the risk to the State and appears to have been well vetted by the
+Department of Technology to conform to best practices for cybersecurity.
+Subcommittee members may wish to ask the following questions:
+1. Why was the Cybersecurity budget proposal not included in the May Revision?
+2. Given the proposed backup system support ends in September, what is the State plan for
+continuing to operate CalGrant and the Middle Class Scholarship programs if the
+information technology database is captured by ransomware hackers?
+Staff Recommendation: Hold Open.
+Assembly Budget Committee 13
+Subcommittee No. 3 on Education Finance May 19, 2026
+6440 – University of California
+Issue 5: In-State Enrollment Buyout and Enrollment Targets
+The May Revision includes language related to enrollment targets.
+Panel
+• Jennifer Louie, Department of Finance
+• Seija Virtanen, University of California
+• Florence, Bouvet, Legislative Analyst’s Office
+May Revision Proposals
+While the May Revision continues the funding levels of the Governor’s January Budget, it does
+propose new provisional language related to enrollment and in-state buyouts. These provisions
+are:
+• Replacement of Nonresident Undergraduate Full-Time Equivalent Students. The
+May Revision includes provisional language related to the in-state enrollment buyout,
+which is similar to language included in recent budgets. The actual language is included
+below:
+Of the funds appropriated in this item, $153,000,000 is provided for the
+replacement of 4,510 nonresident undergraduate full-time equivalent students. As
+specified in Section 93000 of the Education Code, it is the intent of the Legislature
+that the University of California replace the 4,510 an additional 902 nonresident
+undergraduate full-time equivalent students by replacing 902 nonresident
+undergraduate full-time equivalent students annually from 2022-23 through 2026–
+27 with an equal number of resident undergraduate full-time equivalent students
+combined at the Berkeley, Los Angeles, and San Diego campuses. The total
+combined annual replacement of nonresident students should be 902 full-time
+equivalent students, with Berkeley, Los Angeles, and San Diego each contributing
+towards the 902 full-time equivalent student replacement total annually. If the
+University of California replaces more than 902 nonresident undergraduate full-
+time students in the 2025–26 enrollment target, those additional students can be
+counted towards the 2026–27 target. Nonresident undergraduate full-time
+equivalent student replacement above that annual 902 target from 2022–23, 2023–
+24, 2024–25, and 2025–26 can be counted towards the replacement of 902
+nonresident undergraduate full-time equivalent students in 2026–27. If the actual
+reduction in nonresident undergraduate enrollment in 2026‒27 at these campuses
+is fewer than 902 full-time equivalent students, the Director of Finance shall reduce
+funding for the University of California by the portion that is attributable to each
+student under the target reduction level, as specified in Section 93000 of the
+Assembly Budget Committee 14
+Subcommittee No. 3 on Education Finance May 19, 2026
+Education Code. (b) It is the intent of the Legislature to provide $31,000,000 one-
+time General Fund support for the purposes specified in paragraph (a) in 2027-
+28.”
+• Full-Time Equivalent Students The May Revision include language to reflect the
+legislative intent that the University of California shall meet the required Full-Time
+Equivalent Students target in 2026-27. This language has been a fixture of the budget
+bill over the years, but was not proposed in the January budget. The actual language
+proposed is below:
+(a) It is the intent of the Legislature that the University of California also increase
+resident undergraduate enrollment by 2,968 FTES in 2026–27, for a total level of
+212,503 resident undergraduate FTES in 2026–27. (b) The systemwide growth
+identified in this provision is inclusive of the additional 902 resident undergraduate
+FTES resulting from the replacement of nonresident undergraduate FTES
+identified in Provision 30 of this item.
+LAO Report
+On May 12, LAO issue a report on “Nonresident Tuition Rates at UC, as requested by the
+Subcommittee.
+Among the key findings of that report:
+Assembly Budget Committee 15
+Subcommittee No. 3 on Education Finance May 19, 2026
+Nonresident costs have continued to climb, diverting from the costs for in-state students:
+Compared to private schools, UC is still lower cost, but compared to other public universities, it
+is among the most expensive:
+Assembly Budget Committee 16
+Subcommittee No. 3 on Education Finance May 19, 2026
+LAO Recommendations
+Recommend Piloting Higher NRST Rate at the Three Highest-Demand Campuses. We
+recommend the Legislature request UC to pilot an increase to the NRST rate for new nonresident
+undergraduate cohorts at UC Berkeley, UCLA, and UCSD. Though Berkeley and UCLA are
+notably more selective than UCSD among nonresident students, we encourage the Legislature
+to include UCSD in the pilot, as it could help inform the possibility for further differentiating NRST
+rates (for example, subsequently applying a higher rate to the Irvine campus). Though the pilot
+could begin as early as 2026-27, we recommend beginning it in 2027-28 given UC already has
+published its 2026-27 rates. We recommend running the pilot for four years, such that the impact
+on four cohorts of students can be examined. (We recognize that another option is to have
+different NRST rates for each UC campus based on its selectivity, but we think beginning with a
+two-tier rate structure—a higher rate at the most selective UC campuses and a lower rate at the
+other UC campuses—makes for a reasonable, somewhat simpler pilot.)
+Pilot Would Raise Tens of Millions of Dollars Over Next Few Years. If the Legislature
+decides to implement the two-tier pilot, one option would be requesting UC to raise the NRST
+rate for 2027-28 by roughly $6,000 at UC Berkeley, UCLA, and UCSD, compared to an increase
+of roughly about $2,000 at the other UC campuses. (These rates are 15 percent higher and
+5 percent higher, respectively, than the 2026-27 NRST rate.) Based on recent enrollment
+patterns, this increase would generate roughly $20 million in additional revenue in 2027-28. As
+new cohorts are added over the next three years, the amount of additional revenue generated
+would ramp up—reaching about $80 million by year four. This additional revenue could be used
+to supplement core funds at UC or replace state General Fund in response to a state budget
+deficit or competing state budget priorities. (We note that a differential tuition policy could be
+enacted regardless of what the Legislature decides on UC’s nonresident enrollment levels.
+Whether the Legislature decides to lower, maintain, or raise nonresident enrollment levels at
+some or all UC campuses, differential tuition rates still could be structured in a way that
+generates more revenue compared to uniform tuition rates.)
+Recommend UC Report Certain Data About Impacts of the Pilot. While the differential tuition
+pilot is in place, we recommend the Legislature have UC collect and report data on the impacts
+of the higher rates at the three selected campuses. In particular, we recommend UC collect the
+data to determine whether the higher NRST rates dampen enrollment demand among
+nonresident students, lower yield rates, or raise the household income levels of nonresident
+students. UC also could leverage survey data it already collects from students who decline a UC
+admission offer. That existing survey asks students to report the primary reason for declining
+UC admission (with one response option being “financial reasons”). Additionally, that survey
+asks students to report where they decided to enroll instead of UC. Upon completion of the
+four-year pilot, UC could summarize key lessons learned and identify potential future
+modifications to the NRST rate structure.
+Assembly Budget Committee 17
+Subcommittee No. 3 on Education Finance May 19, 2026
+Staff Comment
+This issue continues the conversation that began in the UC hearing earlier this year. The
+Subcommittee may wish to consider options for how to advance the concept proposed by LAO
+in piloting increased tuition so this conversation can continue.
+Possible questions the Subcommittee could consider:
+1. Why did the January budget not include the proposed provisional language?
+2. Has the UC considered tuition rates like the proposed LAO pilot?
+Staff Recommendation: Hold Open.
+Assembly Budget Committee 18
+Subcommittee No. 3 on Education Finance May 19, 2026
+6120 – California State Library
+6440 – University of California
+6600 – College of the Law, San Francisco
+6610 – California State University
+6645 – CSU Health Benefits for Retired Annuitants
+6870 – Capital Outlay, California Community Colleges
+Issue 6: Other May Revision Budget Proposals
+The May Revision contains many small budget items and technical changes that are
+summarized in this issue to allow member to ask questions.
+Panel
+No presentation was requested; the panel is available if members have questions.
+• Department of Finance
+• Legislative Analyst’s Office
+May Revision Proposals
+The May Revision includes various budget adjustments not included in previous items. These
+are:
+California State Library
+1. The May Revision proposes to extend the period to liquidate encumbrance for the Local
+Library Infrastructure Grants and Community Development Support Liquidation Extension
+University of California
+2. The May Revision proposes $1,999,000 ongoing federal funds to reflect revised award
+amounts for the Gaining Early Awareness and Readiness for Undergraduate Programs
+(GEAR UP). This federal program focuses on increasing post-secondary education
+attainment among middle and high school students from low-income, under-served
+communities.
+3. The May Revision includes $1.5 million one-time to support the matriculation of students
+in foster care through the University of California First Star Program for postsecondary
+education success.
+Assembly Budget Committee 19
+Subcommittee No. 3 on Education Finance May 19, 2026
+4. The May Revision includes reappropriations of six budget items that need more time to
+be fully expended.
+5. Statutory Changes: The May Revision provides small statutory changes to change to
+reporting frequency and remove reporting language from the budget bill. These include:
+a. Student Housing Data Collection Report—It is requested that statutory changes
+be added to consolidate the reporting requirements.
+b. Student Housing Grant Program Report—It is requested that statutory changes be
+added to consolidate the reporting requirements.
+c. Basic Needs, Mental Health, and Rapid Rehousing Programs Report—It is
+requested that statutory changes be added to consolidate and codify the reporting
+requirements previously included in budget provisional language. It is further
+requested that statutory changes be made to shift reporting from annual to
+biennial.
+d. Summary of Campus Capacity, Instructional & Faculty Office Space Report—shift
+reporting from annual to biennial.
+College of the Law, San Francisco
+The May Revision includes an increase of $1 million ongoing to provide support for campus
+public safety and security programs.
+California State University
+6. The May Revision includes budget bill language reflecting the ongoing annual funding for
+the Higher Education Student Housing Grant Program.
+7. Statutory Changes: The May Revision provides small statutory changes to change to
+reporting frequency and remove reporting language from the budget bill. These include:
+a. Basic Needs, Mental Health, and Rapid Rehousing Programs Report—It is
+requested that statutory changes be added to consolidate and codify the reporting
+requirements previously included in budget provisional language. It is further
+requested that statutory changes be made to shift reporting from annual to
+biennial.
+b. Acquisition of Real Property Using Parking and Housing Revenues Report—It is
+requested that statutory changes be added to shift reporting from annual to
+biennial.
+c. Student Housing Data Collection Report—It is requested that statutory changes
+be added to consolidate the reporting
+Assembly Budget Committee 20
+Subcommittee No. 3 on Education Finance May 19, 2026
+d. Student Housing Grant Program Report—It is requested that statutory changes be
+added to consolidate the reporting requirements.
+8. The May Revision requests $2,850,000 ongoing to reflect increased health premiums for
+CSU retired annuitants at the CSU Health Benefits for Retired Annuitant.
+Community Colleges Capital Outlay
+9. The May Revision requests budget language to reappropriate the working drawings and
+performance criteria appropriations for several ongoing projects. Many of the projects
+included in this item are nearing the completion of the preliminary plans phase, though
+any delays could risk the ability to encumber the working drawings appropriations before
+the end of the fiscal year.
+Staff Comment
+The May Revision items included in this issue make small or technical adjustments. Staff
+grouped these items here to allow members to ask questions if needed but to avoid
+presentations on all of these items. This group allows the members focus time on the hearing
+on items that were more likely to trigger member engagement.
+Staff Recommendation: Hold Open.
+Assembly Budget Committee 21
+Subcommittee No. 3 on Education Finance May 19, 2026
+6100 California Department of Education
+7760 Office of Public School Construction
+6360 Commission on Teacher Credentialing
+0985 California School Finance Authority
+Issue 7: May Revision of January PreK-12 Funding & Trailer Bill Proposals
+This panel will hear changes at May Revision to Governor’s Budget TK-12 funding and trailer bill
+proposals.
+Panel
+• Various, Department of Finance
+• Edgar Cabral, Legislative Analyst’s Office
+Background
+Maintains Major January Proposals with Revisions:
+• For the 2026-27 Budget Year, projects TK-12 per pupil spending to be $151.6 billion from
+all funding sources.
+• Per-pupil funding grows in the Governor’s Budget to a funding rate of $28,282 per student.
+Proposition 98 TK-12 funding per student is proposed to grow to $21,032 in 2026-27.
+• Increases Proposition 98 funding for the Local Control Funding Formula (LCFF) by $2.2
+billion, reflecting declining enrollment, Universal Transitional Kindergarten (UTK) and a
+4.31% cost-of-living adjustment (COLA) in 2026-27. Provides an increase of $32.7 million
+for County Office of Education LCFF costs, adjusted for average daily attendance rates
+and COLA.
+This LCFF COLA is 1.44% higher than the statutory COLA of 2.87%, and references costs
+for the proposed Paid Family Leave trailer bill provisions.
+• Provides $261 million for a 2.87% COLA to all statutorily-required TK-12 programs,
+except preschool.
+• Proposes two increases to the Charter School Facility Grant Program: (1) $1.9 million for
+a statutory COLA adjustment to account for increasing costs over time and (2) a $3.5
+million Current Service Level adjustment to address increased demand.
+Assembly Budget Committee 22
+Subcommittee No. 3 on Education Finance May 19, 2026
+• Proposes $5 billion, for an additional one-time Student Support and Discretionary Block
+Grant, based on Average Daily Attendance, that includes support for dual enrollment,
+career pathways approaches, and professional development for educators in UTK,
+English Language Arts and Development, and mathematics.
+• Proposes an ongoing $1 billion investment to expand the California Community Schools
+Partnership Program, including $10 million ongoing for the technical assistance system,
+and trailer bill proposals to adjust the program design for an ongoing apportionment and
+expansion. Creates a new certification system for Community School standards.
+• Proposes to increase Special Education base rates by an ongoing total of $1.8 billion, to
+increase per pupil funding to $1,340.
+• Allocates $1.5 billion in Proposition 2 school facility bond funds for 2026-27 construction
+projects.
+• Adjusts the Home to School Transportation funding with $322 million one-time and $306.8
+million ongoing to reflect local education agency actual costs.
+• Increases the Expanded Learning Opportunities Program by $62.4 million ongoing, for
+the projected cost of a new $1,800 per unduplicated pupil rate for local education
+agencies with less than 55% total unduplicated pupils.
+• Increases the Necessary Small Schools funding by 20 percent in the Local Control
+Funding Formula, with $31.26 million ongoing Proposition 98.
+• Expands existing funding for County Offices of Education to provide universal and
+targeted assistance in the System of Support for struggling schools, by $10.9 million
+ongoing Proposition 98. Includes statutory proposals for updated performance criteria and
+timelines for support.
+• Expands the existing Learning Recovery Emergency Block Grant with $757.3 million one-
+time funding through 2027-28, to a restored total of $7.2 billion.
+• Extends the Teacher Residency programs through 2029-30 with an increase of $250
+million, one-time.
+• Proposes $100 million, one-time for expanding dual enrollment programs, on a
+competitive basis. This funding must be committed by June 30, 2029. The proposal
+includes trailer bill changes to the program design, and would allow dual enrollment
+students to have more lower instructional minutes standards.
+Assembly Budget Committee 23
+Subcommittee No. 3 on Education Finance May 19, 2026
+• Proposes an additional $100 million one-time for the Kitchen, Infrastructure and Training
+program.
+• Proposes $16.2 million in ongoing federal IDEA funding to the Golden State Teachers
+Grant program, for special education teacher applicants, and $1.6 million federal Title II
+funds for all program applicants in 2026-27. Increases special education teacher grant
+levels to $20,000. Eliminates the January Budget general fund proposal.
+• Maintains the California universal meals commitment with an increase in $2.81 million in
+annual Proposition 98 funding, to reflect meal service estimates and a proposed meal
+reimbursement rate increase.
+• Provides an additional $40 million one-time Proposition 98 for the implementation costs
+in 2026-27 for the new reading difficulties screener, and proposes statutory changes for
+screen administration.
+• Proposes an additional $22.9 million one-time Proposition 98 support for LEAs recovering
+from the 2025 wildfires.
+• Increases the Fiscal Crisis and Management Assistance Team funding by $994,000
+ongoing Proposition 98.
+• Increases the California School Information System funding by $975,000 ongoing
+Proposition 98.
+• Increases the K-12 High Speed Network funding by $629,000 ongoing Proposition 98.
+• Proposes $890,000 ongoing Proposition 98 funding for the Los Angeles County Office of
+Education science performance task resources.
+• Proposes to extend the encumbrance deadline for the Computer Science Supplementary
+Authorization Incentive Grants program to June 30, 2030 and increase the maximum
+grant size to $6,000 per teacher. In addition, the Governor proposes to reduce the match
+requirement for districts to one-third of grant funding
+• Proposes new requirements for charter schools to address verified data, fraud, and
+accountability.
+• Proposes to amend Education Code sections 313.1 and 313.2, which defines Long Term
+English Language Learners, and pupils at risk of being a Long Term English Language
+Assembly Budget Committee 24
+Subcommittee No. 3 on Education Finance May 19, 2026
+Learner, and directs how the CDE provides data on Long Term English Language
+Learners.
+• Proposes to amend Education Code Sections 44259 and 44281 to expand the definitions
+of subject matter competency.
+• Proposes 10 permanent, ongoing positions, and a total of $1,436,000 ongoing to support
+the CTC with the costs of Senate Bill (SB) 848 (Chapter 460, Statutes of 2025).
+• Proposes various new positions for the Department of Education.
+Major New May Revision PreK-12 Education Proposals
+• Proposes to mandate Paid Family Leave policies for local education agency employees.
+• Proposes one-time investments in the Community Schools Partnership Program:
+o $401 million for Planning Grants
+o $50 million for Middle and High School Redesign
+o $28 million for the State Transformation Assistance Center
+o $6 million for the CYBHI Transforming Together initiative
+o $50 million for the Multi-Tiered Systems of Support (MTSS) initiative.
+• Increases the Quality Rating and Improvement Grant with $20 million, ongoing.
+• Proposes to fund the UCSF Dyslexia Center with $5 million ongoing, for the Multitudes
+Screener.
+• Increases the Mandate Block Grant by $1.7 million ongoing for the Menstrual Products
+mandated program.
+• Proposes to extend Literacy Coaches grants through the 2030-31 fiscal year with $428.8
+million, one-time, and the Literacy Coaches and Reading Specialists Educator Training
+grant with $11.2 million, one-time.
+• Proposes to extend the Math Professional Learning Partnership to more grantees and
+through the 2028-29 fiscal year with $60 million one-time.
+• Proposes a one-time increase of $25 million for the Inclusive College Technical
+Assistance Center.
+Assembly Budget Committee 25
+Subcommittee No. 3 on Education Finance May 19, 2026
+• Proposes to extend the Teacher Residency Technical Assistance Center through 2034
+with $30 million, one-time.
+• Proposes to extend the 21st Century California School Leadership Academy with $15
+million, one-time.
+• Creates a new, $30 million one-time grant to support identification of and support for
+Students Experiencing Homelessness.
+• Proposes an additional $10 million one-time for the Holocaust and Genocide Education
+Grant Program, with programmatic changes.
+• Proposes $5 million one-time for a Commission on Teacher Credentialling teacher
+candidate transcript review IT system, and a $25 fee increase on teacher credentials to
+offset the ongoing policy changes.
+• Proposes another $5 million one-time non-Prop 98 for Save the Children.
+See Attachment A for the Finance Letter for all PreK-12 May Revision proposals. The
+Department of Finance may correct any misinterpretations of their May Revision proposals
+contained in the agenda, as part of their formal presentation to the Subcommittee.
+The Subcommittee will not be considering the revised Education Governance trailer bill
+proposals, and has deferred to AB 2117 (Alvarez).
+Suggested Questions
+1. Should the Student Support Discretionary Block Grant be aligned to LCFF, to support
+coherence and equity?
+2. Given the research showing positive outcomes from LCFF and the Learning Recovery
+Block Grant designs, should there be some restrictions or focus in the Discretionary Block
+Grant, as such an enormous one-time investment in schools?
+3. Did the Administration consider increasing the Special Education cost pools?
+4. Should the Golden State Teachers Program be further restricted to the state’s most
+chronic educator shortage areas, due to limited funds?
+5. Why are the estimates for the new Universal and Targeted Assistance rates lower at
+May Revision?
+Assembly Budget Committee 26
+Subcommittee No. 3 on Education Finance May 19, 2026
+6. Why is the UCSF Multitudes screener the only one subsidized by the state?
+7. Why is the Reading Screener trailer bill restricting screen timelines in 1st grade, if there
+is no evidence that is needed?
+8. Why is Save the Children proposed to receive General Funds for after school programs,
+when ELOP is available for the same services?
+Staff Recommendation: Hold Open.
+Assembly Budget Committee 27
+Subcommittee No. 3 on Education Finance May 19, 2026
+Issue 8: New May Revision Trailer Bill Proposals
+This panel will hear new and significant PreK-12 education trailer bill proposals in the May
+Revision.
+Panel
+• Various, DOF
+• Edgar Cabral, LAO
+Background
+Major May Revision PreK-12 Education Proposals:
+TK-12
+• Charter School Accountability - It is requested that statutory changes transmitted with
+the Governor’s Budget be amended to specify and clarify auditing and reporting
+requirements for charter schools to improve accountability and oversight.
+• Paid Pregnancy Disability Leave - It is requested that statutory changes be added to
+require public school employers and community college districts provide up to 14 weeks
+of paid pregnancy disability leave to all employees.
+• California Educators Together - It is requested that statutory changes be added to
+appropriate $600,000 ongoing Proposition 98 General Fund to support the California
+Educators Together Platform. The platform will be utilized to, among other things, host
+digital and media literacy resources for educators that have been developed by the
+California Innovation Council, in collaboration with the California Department of
+Technology and State Board of Education, to better protect students online and establish
+safeguards for use of new and emerging technology in schools, such as Artificial
+Intelligence (AI).
+• Students Experiencing Homelessness - It is requested that statutory changes be
+added to appropriate $30 million one-time Proposition 98 General Fund for grant program
+for local educational agencies to increase identification of and improve outcomes for
+students experiencing homelessness
+Assembly Budget Committee 28
+Subcommittee No. 3 on Education Finance May 19, 2026
+All Segments
+• Cradle to Career Data - This bill would require the data providers in the Cradle to Career
+Data System to enter into a memoranda of understanding for data sharing purposes for
+implementation of the data system.
+Suggested Questions
+1. How does the charter accountability provisions differ from SB 414 (Ashby, 2025) and
+why?
+2. How does the LEA Paid Family Leave proposal differ from the state’s Paid Family Leave
+program through the Employment Development Division?
+3. Why is the new one-time homeless youth proposal separate from the Community Schools’
+grants?
+4. What is the California Educators Together Platform, and why does it warrant ongoing
+Proposition 98 funding?
+5. What is the purpose of the Cradle to Career reporting requirement on the segments?
+Staff Recommendation: Hold Open.
+This agenda and other publications are available on the Assembly Budget Committee’s website at: Sub 3
+Hearing Agendas | California State Assembly. You may contact the Committee at (916) 319-2099. This agenda
+was prepared by Erin Gabel and Christian Griffith.
+Assembly Budget Committee 29

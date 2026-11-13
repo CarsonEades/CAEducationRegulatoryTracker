@@ -4,7 +4,7 @@ Context for a new working session on this repository (`carsoneades/CAEducationRe
 formerly `Kalkin55/…`). Read this together with `README.md`, which has setup, the per-agency
 status table and the CDE pacing variables.
 
-Last updated: 2026-11-04 (afternoon).
+Last updated: 2026-11-13 (budget tracking added; see "Budget tracking" below).
 
 ## What this is and why
 
@@ -215,6 +215,72 @@ GitHub Actions (cron) → Python scrapers → Supabase Postgres ← React dashbo
 - **CPAG:** has one list page per year (`cpag{YEAR}agendas.asp`). In January it fails until CDE
   creates the new year's page. The fixtures were uploaded by the owner, because CDE blocked
   the agent's attempts to fetch them.
+
+## Budget tracking (added Nov 13, 2026)
+
+The team also wanted the California budget tracked: the Assembly and Senate budget committees
+and subcommittees, the Department of Finance and the LAO. It's built into this repo as a second
+**program** (`agencies.program = 'budget'`) rather than a separate app, so it reuses the scrapers'
+pipeline, change detection, keywords, reviews, digest and login. The dashboard has an "Education
+agencies | Budget" switch; budget pages live under `#/budget`.
+
+### Sources and how each is read (checked Nov 13 with one request each; none challenged)
+
+| Agency ids | Route | Protection seen | Changes by year? |
+|---|---|---|---|
+| `abgt_full`, `abgt_sub1`…`abgt_sub7`, `abgt_reports` | HTML committee pages; `/media/N` links redirect to `system/files/YYYY-MM/*.pdf` | Cloudflare (`__cf_bm` cookie only); plain requests accepted | No: same pages, new "2027 Agendas" heading each year |
+| `sbud_full`, `sbud_sub1`…`sbud_sub5`, `sbud_reports` | Same CMS as the Assembly | Cloudflare, accepted | No |
+| `dof_trailer_bills` | JSON: `trailerbill.dof.ca.gov/public/getAppInfo`, `/getTrailerBillsByPit/{p,m,e}`, PDFs at `/public/pdf/{id}` (found in the app's `main-*.js`) | none | Lists are per budget stage; `h` (last year's chaptered bills) is skipped |
+| `dof_budget` | JSON: `ebudget.ca.gov/api/home/getLink`, `/api/{budget\|publication}/{pit}/{year}/appInfo`; summary PDF at `/{year}/pdf/[{Revised\|Enacted}/]BudgetSummary/FullBudgetSummary.pdf` | none | Latest year only (first entry of getLink) |
+| `dof_finance_letters` | HTML: Budget Details page, then each "Proposed … Adjustments" page | none | Links change each year; found by their text |
+| `lao_budget`, `lao_education` | HTML | Cloudflare, accepted | `/Budget` shows the current year |
+
+The session environment needed these hosts allowed: `abgt.assembly.ca.gov`,
+`sbud.senate.ca.gov`, `dof.ca.gov`, `trailerbill.dof.ca.gov`, `ebudget.ca.gov`, `www.lao.ca.gov`.
+GitHub's runners reach them without setup.
+
+### Decisions
+- **Review status and notes are per hearing or publication** (the owner chose this over per
+  item). Notes are a separate table (`posting_notes`) so writing one doesn't mark anything
+  reviewed.
+- **Agenda items come from the agenda PDF** (`tracker/agenda.py`). The scraper marks agenda links
+  `DocLink(agenda=True)`; the pipeline splits the downloaded (or stored) text into items before
+  hashing, so a revised agenda shows which items changed. Strategies, in order: "Issue N" headings
+  under body department lines (contents lines, which end in page numbers or dot leaders, are
+  ignored), a dot-leader contents list of departments, a bill list, a short numbered order of
+  business. When none fit, a warning goes to `agencies.last_note` (health page).
+- **Item numbers include the department** ("6980 · Issue 3") because issue numbers restart in
+  some agendas, and "Part N ·" when a hearing has several agenda PDFs.
+- **Per-site document limits per run** (`http.HOST_DOC_BUDGETS`: 40 for each legislative site
+  and the trailer bill API, fewer for DOF, ebudget and LAO). A first run lists about 13 months of
+  hearings, which would otherwise mean hundreds of PDFs at once. Deferred documents download in
+  later runs, even for hearings older than the 30-day detail window, and items that appear only
+  because an agenda finally downloaded are stored quietly (not "updated").
+- **Late keyword hits** on postings loaded as "Already posted" no longer flag them as updated
+  unless the meeting is recent or upcoming (this applies to the education side too).
+- **Empty committee pages** are a warning (`Agency.may_be_empty`), since pages can be emptied
+  between sessions.
+- **Every request is logged** in `crawl_log` now (with `agency_id`, `request_type` and `status`),
+  not just CDE's, for the health page. Rows older than 120 days are deleted at the start of each run.
+- **Calendar:** `calendar_hearings` is the team's list; `calendar_feeds` holds each person's
+  random token. The iCalendar text is built in SQL (`calendar_ics()`, tested in pytest) and served
+  by the `calendar` Edge Function, deployed with JWT verification off. The token is the only
+  protection, like Outlook's own "secret address" links; regenerating it cuts off the old address.
+  Events use UTC times from the Pacific hearing time, all-day events when no time is listed, and
+  `SEQUENCE` from the number of stored versions.
+- **Hash compatibility:** `start_time` and `location` are hashed only when set, so education
+  postings stored before they existed keep their hash.
+- **Not done:** cross-checking the shared hearing pages against the committee pages (the Assembly
+  page only lists hearings in session, and the Senate one only links to subcommittees).
+
+### External addresses (check all of these after any rename)
+- Dashboard: `https://carsoneades.github.io/CAEducationRegulatoryTracker` (GitHub Pages).
+- Supabase **Authentication → URL Configuration**: Site URL and Redirect URLs = the dashboard.
+- Repository variable `DASHBOARD_URL` (links in emails), also copied into the calendar
+  function's `DASHBOARD_URL` secret by the "Deploy calendar feed" workflow.
+- Resend: the verified sending domain and the `EMAIL_FROM` secret.
+- Calendar feed: `https://<project-ref>.supabase.co/functions/v1/calendar/<token>.ics` (each
+  person's Outlook subscription; changes if the Supabase project changes).
 
 ## Gotchas (each one has bitten us)
 

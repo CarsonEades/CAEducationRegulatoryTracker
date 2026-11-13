@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <title>Budget Details | California Department of Finance</title>
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0" meta charset="UTF-8" />
+
+<!-- BEGIN STATE_TEMPLATE -->
+
+<!-- Public Sans Font
+Load the recommended Public Sans Font.  Removing this section will use System-UI font stack instead.
+
+More info on Typography here...
+https://template.webstandards.ca.gov/visual-design/typography.html
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:ital,wght@0,100..900;1,100..900&display=block"
+    rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:ital,wght@0,200..900;1,200..900&display=swap"
+    rel="stylesheet">
+<!-- End Public Sans Font -->
+
+<!-- STATE_TEMPLATE *** HEAD references ***
+  
+Include links to stylesheet and custom theme and core JS.
+  
+<link rel="stylesheet" href="ca_state_template/css/cagov.core.min.css"/>
+<link rel="stylesheet" href="ca_state_template/css/colortheme-oceanside.min.css"/>
+<script src="ca_state_template/js/cagov.core.min.js"></script>
+
+You may also use the CDN instead of using the local folder...
+
+<link rel="stylesheet" href="https://cdn.cdt.ca.gov/cdt/statetemplate/6.4.1/css/cagov.core.min.css" crossorigin="anonymous"/>
+<link rel="stylesheet" href="https://cdn.cdt.ca.gov/cdt/statetemplate/6.4.1/css/colortheme-oceanside.min.css" crossorigin="anonymous"/>
+<script src="https://cdn.cdt.ca.gov/cdt/statetemplate/6.4.1/js/cagov.core.min.js" crossorigin="anonymous"></script>
+
+More info on CDN here...
+https://template.webstandards.ca.gov/cdn.html
+
+-->
+<link rel="stylesheet" href="/ca_state_template/css/cagov.core.min.css" />
+<link rel="stylesheet" href="/ca_state_template/css/colortheme-oceanside.min.css" />
+<script src="/ca_state_template/js/cagov.core.min.js"></script>
+<!-- END STATE_TEMPLATE -->
+
+<link rel="apple-touch-icon-precomposed" sizes="100x100" href="/images/apple-touch-icon-precomposed.png" />
+<link rel="icon" sizes="192x192" href="/images/apple-touch-icon-192x192.png" />
+<link rel="apple-touch-icon-precomposed" sizes="180x180" href="/images/apple-touch-icon-180x180.png" />
+<link rel="apple-touch-icon-precomposed" sizes="152x152" href="/images/apple-touch-icon-152x152.png" />
+<link rel="apple-touch-icon-precomposed" sizes="144x144" href="/images/apple-touch-icon-144x144.png" />
+<link rel="apple-touch-icon-precomposed" sizes="120x120" href="/images/apple-touch-icon-120x120.png" />
+<link rel="apple-touch-icon-precomposed" sizes="114x114" href="/images/apple-touch-icon-114x114.png" />
+<link rel="apple-touch-icon-precomposed" sizes="72x72" href="/images/apple-touch-icon-72x72.png" />
+<link rel="apple-touch-icon-precomposed" href="/images/apple-touch-icon-57x57.png" />
+<link rel="shortcut icon" href="/images/apple-touch-icon-57x57.png" />
+<link rel="apple-touch-icon" href="/images/apple-touch-icon.png" />
+<link rel="shortcut icon" href="/favicon.ico" />
+<!-- Statewide Alerts Server -->
+<script defer src="https://alert.cdt.ca.gov" crossorigin="anonymous"></script>
+<!-- BEGIN Google Tag Manager -->
+<link rel="preconnect" href="https://www.googletagmanager.com" />
+<link rel="preconnect" href="https://www.google-analytics.com" />
+<script>
+    //*** BEGIN STATE TEMPLATE CHANGE REQUESTED
+    //Your GA4 Measurement ID that this website should use for website analytics
+    var yourGA4MeasurementId = "G-2LNG7V2TGM"; //Set to the default GA4 Measurement ID (G-75V2BNQ3D...R), please change it to the one for your organization.
+    //*** END STATE TEMPLATE CHANGE REQUESTED
+
+    //Support code to make this work, just leave this as is
+    var stateGTMAccount = "GTM-NJ6Q4MV"; //GTM-NJ6Q4MV - all ca.gov
+    (function (w, d, s, l, i) {
+        w[l] = w[l] || []; w[l].push({
+            'gtm.start':
+                new Date().getTime(), event: 'gtm.js'
+        }); var f = d.getElementsByTagName(s)[0],
+            j = d.createElement(s), dl = l != 'dataLayer' ? '&l=' + l : ''; j.async = true; j.src =
+                'https://www.googletagmanager.com/gtm.js?id=' + i + dl; f.parentNode.insertBefore(j, f);
+        (function () { dataLayer.push(arguments) })('config', yourGA4MeasurementId, { cookie_flags: 'secure;samesite=lax;domain=' });
+    })(window, document, 'script', 'dataLayer', stateGTMAccount);
+</script>
+<!-- END Google Tag Manager -->
+
+<!-- custom/overriding styles and scripts -->
+<link rel="stylesheet" href="/css/styles.css">
+<script src="/js/custom-footer.js"></script>
+
+  <!-- Variable needed to set the active nav item in nav-handler.js -->
+  <!-- To set the active link, uncomment the following block and set current page -->
+  <!-- Options: 'home', budget', 'accounting', 'forecasting', 'reports', 'programs', 'about-us', 'careers', 'whats-new', 'quick-links'-->
+  <link rel="canonical" href="https://dof.ca.gov/budget/budget-details/">
+  <script>
+    window.CURRENT_PAGE = 'budget';
+  </script>
+</head>
+
+<body class="primary">
+  <header role="banner" id="header" class="global-header fixed">
+  <div id="skip-to-content">
+    <a href="#main-content">Skip to Main Content</a>
+  </div>
+  <div class="utility-header">
+    <div class="container">
+      <div class="flex-row">
+        <div class="social-media-links">
+          <div class="header-cagov-logo">
+            <a href="https://ca.gov">
+              <span class="sr-only">CA.gov</span>
+              <span class="ca-gov-logo-svg"></span>
+            </a>
+          </div>
+          <p class="official-tag">
+            <span class="desktop-only">Official website of the</span>
+            State of California
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- header branding with light gray background -->
+  <div class="section-default">
+    <div class="branding">
+      <div class="header-organization-banner">
+        <a href="/index.html">
+          <img src="/images/template-logo.webp" class="logo-img" alt="DOF Logo" />
+        </a>
+      </div>
+    </div>
+  </div>
+  <!-- mobile navigation controls -->
+  <div class="mobile-controls">
+    <span class="mobile-control-group mobile-header-icons">
+      <!-- Add more mobile controls here. These will be on the right side of the mobile page header section -->
+    </span>
+    <div class="mobile-control-group main-nav-icons">
+
+      <button id="nav-icon3" type="button" class="mobile-control toggle-menu" aria-expanded="false"
+        aria-controls="navigation">
+        <span></span>
+        <span></span>
+        <span></span>
+        <span></span>
+        <span class="sr-only">Menu</span>
+      </button>
+    </div>
+  </div>
+  <div class="navigation-search full-width-nav container">
+    <div id="head-search" class="search-container featured-search">
+      <div class="container">
+        <form id="Search" class="pos-rel" action="/SERP/">
+          <span class="sr-only" id="SearchInput">Custom Google Search</span>
+          <input type="search" name="q" aria-labelledby="SearchInput" placeholder="Search" class="search-textfield" />
+          <button type="submit" class="gsc-search-button">
+            <span class="ca-gov-icon-search" aria-hidden="true"></span>
+            <span class="sr-only">Submit</span>
+          </button>
+          <div class="close-search-btn">
+            <button class="close-search gsc-clear-button border-0 bg-transparent pos-rel" type="reset">
+              <span class="sr-only">Close</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+    <nav id="navigation" class="main-navigation dropdown" aria-label="Main navigation">
+      <ul id="nav_list" class="top-level-nav">
+        <li class="nav-item">
+          <a class="first-level-link" href="/budget/" data-nav-id="budget">Budget</a>
+        </li>
+        <li class="nav-item">
+          <a class="first-level-link" href="/accounting/" data-nav-id="accounting">Accounting</a>
+        </li>
+        <li class="nav-item">
+          <a class="first-level-link" href="/forecasting/" data-nav-id="forecasting">Forecasting</a>
+        </li>
+        <li class="nav-item">
+          <a class="first-level-link" href="/reports/" data-nav-id="reports">Reports</a>
+        </li>
+        <li class="nav-item">
+          <a class="first-level-link" href="/programs/" data-nav-id="programs">Programs</a>
+        </li>
+        <li class="nav-item">
+          <a class="first-level-link" href="/about-us/" data-nav-id="about-us">About Us</a>
+        </li>
+        <li class="nav-item">
+          <a class="first-level-link" href="/about-us/careers/" data-nav-id="careers">Careers</a>
+        </li>
+        <li class="nav-item">
+          <a class="first-level-link" href="/whats-new/" data-nav-id="whats-new">What's New</a>
+        </li>
+        <li class="nav-item">
+          <a class="first-level-link" href="/quick-links/" data-nav-id="quick-links">Quick Links</a>
+        </li>
+      </ul>
+    </nav>
+  </div>
+  <script src="/js/nav-handler.js"></script>
+</header>
+  <div id="main-content" class="main-content dof-min-page-height">
+    <main class="main-primary  m-b-60" id="main">
+      <div class="container p-t-0">
+        <div class="m-t-md" id="breadcrumb-container"></div>
+        <h1 class="p-t-0">Budget Details</h1>
+        <!-- BEGIN insert main content code -->
+        <h2>Budget Change Proposals</h2>
+        <p>A <a href="https://bcp.dof.ca.gov/bcp">Budget Change Proposal (BCP)</a> is a proposal to change the
+          level of service or funding sources for activities authorized by the Legislature, or to propose new program
+          activities not currently authorized. For information on preparing effective BCPs, see <a
+            href="/budget/budget-details/good-budget-change-proposals-bcps/">Good Budget Change
+            Proposals</a> and the <a href="/budget/resources-for-departments/budget-analyst-guide-bag/">Budget Analyst
+            Guide</a>.</p>
+        <p>For the BCP Form (DF-46) and the COBCP Cover Page (DF-151), see the <a
+            href="/budget/resources-for-departments/budget-forms/">Budget Forms</a> page.</p>
+        <h2>Finance Letters</h2>
+        <p>Finance Letters are proposals made by the Administration to the chairpersons of the budget committees in each
+          house. Normally, the purpose of Finance Letters is to amend the Budget Bill and the Governor's Budget from
+          that submitted on January 10 to reflect a revised plan of expenditure for the budget year and/or current year.
+          Prior year Finance Letters can be viewed on the <a
+            href="/budget/historical-budget-information/historical-budget-publications/">Historical
+            Budget Publications</a> page. Listed below are the finance letters for 2026-27.</p>
+        <ul>
+          <li><a
+              href="/budget/historical-budget-information/historical-budget-publications/2026-27-proposed-may-adjustments-to-the-governors-budget/">2026-27
+              Proposed May Adjustments to the Governor’s Budget</a></li>
+          <li><a
+              href="/budget/historical-budget-information/historical-budget-publications/2026-27-proposed-april-1st-adjustments-to-the-governors-budget/">2026-27
+              Proposed April 1st Adjustments to the Governor’s Budget</a></li>
+        </ul>
+        <h2>Pro Rata/Statewide Cost Allocation Plan (SWCAP)</h2>
+        <p>To learn more about how Pro Rata and SWCAP represent General Fund recoveries of statewide general
+          administration costs, see the <a href="/accounting/accounting-statewide-cost-allocation/">Pro Rata/Statewide
+            Cost
+            Allocation Plan (SWCAP)</a> page.</p> <!-- END insert main content code -->
+      </div>
+    </main>
+  </div>
+  <footer id="footer" class="global-footer p-t-md">
+    <div class="container">
+        <div class="d-flex">
+            <a href="https://ca.gov" class="cagov-logo">
+                <span class="sr-only">CA.gov</span>
+                <span class="ca-gov-logo-svg"></span>
+            </a>
+            <ul class="footer-links font-size-70x">
+                <li><a href="/site-map/">Site Map</a></li>
+                <li><a href="/accessibility/">Accessibility</a></li>
+                <li><a href="/conditions-of-use/">Conditions of Use</a></li>
+                <li><a href="/privacy-policy/">Privacy Policy</a></li>
+                <li><a href="/conflict-of-interest-code/">Conflict of Interest Code</a></li>
+                <li><a href="/guidelines-to-access-public-records/">Public Records Request</a></li>
+                <li><a href="/department-mailing-lists/">Mailing Lists</a></li>
+                <li><a href="/contact-us/">Contact Us</a></li>
+            </ul>
+            <div class="socialsharer-container">
+                <a class="ca-gov-icon-share-twitter font-size-25" title="Twitter Link"
+                    href="https://twitter.com/HDatFinance"></a>
+                <a class="ca-gov-icon-share-youtube font-size-25" title="Youtube Link"
+                    href="https://www.youtube.com/@californiadepartmentoffina6442"></a>
+                <a class="ca-gov-icon-share-linkedin font-size-25" title="Linkedin Link"
+                    href="https://www.linkedin.com/company/california-department-of-finance/"></a>
+                <a class="ca-gov-icon-share-email font-size-25" title="Email Link"
+                    href="mailto:webmaster@dof.ca.gov"></a>
+            </div>
+
+        </div>
+    </div>
+    <!-- Accessible, translatable, Copyright Statement -->
+    <div class="copyright">
+        <div class="container">
+            <span aria-hidden="true">&copy;</span>
+            <span id="thisyear">
+                <script>
+                    document.getElementById('thisyear').appendChild(document.createTextNode(new Date().getFullYear()))
+                </script>
+            </span>
+            State of California
+        </div>
+    </div>
+    <button class="return-top">
+        <span class="sr-only">Back to top</span>
+    </button>
+</footer>
+<!-- Extra Decorative Content -->
+<div class="decoration-last">&nbsp;</div>
+<script src="/js/breadcrumb.js"></script>
+</body>
+
+</html>

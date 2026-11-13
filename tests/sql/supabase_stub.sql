@@ -11,10 +11,13 @@ do $$ begin
   if not exists (select from pg_roles where rolname = 'authenticated') then
     create role authenticated nologin;
   end if;
+  if not exists (select from pg_roles where rolname = 'anon') then
+    create role anon nologin;
+  end if;
 end $$;
 -- Supabase grants the API roles table access by default; RLS policies do the rest.
 alter default privileges in schema public grant all on tables to authenticated;
 alter default privileges in schema public grant all on sequences to authenticated;
 alter default privileges in schema public grant execute on functions to authenticated;
-grant usage on schema public to authenticated;
+grant usage on schema public to authenticated, anon;
 grant usage on schema auth to authenticated;

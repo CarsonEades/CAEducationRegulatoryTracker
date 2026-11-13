@@ -20,3 +20,4 @@ def get_scraper(agency_id: str) -> Scraper | None:
 
 # Agency scraper modules register themselves on import. Add new ones here, e.g.:
 from tracker.scrapers import calpers, calstrs, ccee, cde, csfa, ctc, eaap, fcc, fppc, oag, opsc  # noqa: E402,F401
+from tracker.scrapers import dof, lao, legislature  # noqa: E402,F401

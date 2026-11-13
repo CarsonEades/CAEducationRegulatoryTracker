@@ -1,19 +1,25 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../supabase";
-import type { Agency } from "../types";
+import type { Agency, Program } from "../types";
 import { must, useLoad } from "../util";
 
 interface Prefs {
   email_mode: "none" | "daily" | "immediate";
   agency_ids: string[] | null;
   only_keyword_hits: boolean;
+  programs?: Program[] | null;  // null = both; missing before the budget migration
 }
+
+const PROGRAM_LABEL: Record<Program, string> = {
+  education: "Education agencies",
+  budget: "Budget (committees, Department of Finance, LAO)",
+};
 
 export default function Settings({ userId }: { userId: string }) {
   const { data, error } = useLoad(async () => {
     const [prefs, agencies, profile] = await Promise.all([
       supabase.from("user_prefs").select("*").eq("user_id", userId).maybeSingle(),
-      supabase.from("agencies").select("id, name").order("name"),
+      supabase.from("agencies").select("*").order("name"),
       supabase.from("profiles").select("display_name, email").eq("id", userId).maybeSingle(),
     ]);
     return {
@@ -46,6 +52,14 @@ export default function Settings({ userId }: { userId: string }) {
     setPrefs({ ...prefs!, agency_ids: [...current] });
   }
 
+  const hasPrograms = prefs.programs !== undefined;
+  const programs: Program[] = prefs.programs ?? ["education", "budget"];
+  function toggleProgram(p: Program, on: boolean) {
+    const next = on ? [...new Set([...programs, p])] : programs.filter((x) => x !== p);
+    setPrefs({ ...prefs!, programs: next.length === 2 ? null : next });
+  }
+  const shownAgencies = data.agencies.filter((a) => programs.includes(a.program ?? "education"));
+
   return (
     <div className="narrow stack">
       <h1>Settings</h1>
@@ -71,16 +85,32 @@ export default function Settings({ userId }: { userId: string }) {
                  onChange={(e) => setPrefs({ ...prefs, only_keyword_hits: e.target.checked })} />{" "}
           Only email about postings with keyword matches
         </label>
+        <p className="muted small-text">
+          The daily digest also lists hearings on the team calendar in the coming week and any source
+          that needs attention.
+        </p>
       </fieldset>
 
+      {hasPrograms && (
+        <fieldset>
+          <legend>Email me about</legend>
+          {(["education", "budget"] as const).map((p) => (
+            <label key={p} className="inline">
+              <input type="checkbox" checked={programs.includes(p)}
+                     onChange={(e) => toggleProgram(p, e.target.checked)} /> {PROGRAM_LABEL[p]}
+            </label>
+          ))}
+        </fieldset>
+      )}
+
       <fieldset>
-        <legend>Email me about these agencies</legend>
+        <legend>Email me about these agencies and sources</legend>
         <label className="inline">
           <input type="checkbox" checked={allAgencies}
                  onChange={(e) => setPrefs({ ...prefs, agency_ids: e.target.checked ? null : data.agencies.map((a) => a.id) })} />{" "}
-          All agencies
+          All of them
         </label>
-        {!allAgencies && data.agencies.map((a) => (
+        {!allAgencies && shownAgencies.map((a) => (
           <label key={a.id} className="inline">
             <input type="checkbox" checked={prefs.agency_ids!.includes(a.id)}
                    onChange={(e) => toggleAgency(a.id, e.target.checked)} /> {a.name}

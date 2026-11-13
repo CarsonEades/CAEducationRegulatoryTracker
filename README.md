@@ -1,13 +1,22 @@
-# CA Education Agency Tracker
+# CA Education Agency Tracker and CA Budget Tracker
 
-Watches California education-related agencies' meeting pages, plus AG opinions and ballot
-initiatives. It flags new or changed agendas, searches agenda items and linked documents for
-the team's keywords, and tracks which postings someone has reviewed.
+Two trackers in one dashboard, with the same login:
+
+- **Education agencies:** watches California education-related agencies' meeting pages, plus AG
+  opinions and ballot initiatives.
+- **Budget:** watches the Assembly and Senate budget committees and their subcommittees, the
+  Department of Finance (trailer bill language, the Governor's Budget, May Revision and Enacted
+  Budget, Finance Letters) and the Legislative Analyst's Office.
+
+Both flag new or changed agendas and publications, search agenda items and linked documents for
+the team's keywords, track which postings someone has reviewed, and keep shared notes. Budget
+hearings can be put on a team calendar that each person subscribes to in Outlook.
 
 ```
 GitHub Actions (every 2h) ──► Python scrapers ──► Supabase Postgres ◄── Dashboard (GitHub Pages)
-                                    │                   ▲
-                                    └──► Resend email   └── Supabase Auth (invite-only logins)
+                                    │                   ▲      │
+                                    └──► Resend email   │      └──► Calendar feed (Edge Function) ──► Outlook
+                                                        └── Supabase Auth (invite-only logins)
 ```
 
 For the history of decisions, current settings and known pitfalls, see
@@ -33,6 +42,23 @@ For the history of decisions, current settings and known pitfalls, see
 | Educational Audit Appeals Panel | Yes | Behind Cloudflare, which allows occasional requests (one page per check); reports name appealing districts and charter schools. If it starts refusing checks, set the `CHECK_EVERY_HOURS` variable to `eaap=6` |
 
 Agencies that aren't automated show in the dashboard as "Not automated yet: check by hand".
+
+### Budget sources
+
+| Source | How it's read | Notes |
+|---|---|---|
+| Assembly Budget Committee and Subcommittees 1–7 | Each committee's agenda page, then the agenda PDFs | Items come from the agenda PDF ("Issue 3: ..."); see below |
+| Assembly Budget reports | Committee home page | Floor reports, highlights of the Governor's budget and May Revision, budget plans |
+| Senate Budget and Fiscal Review Committee and Subcommittees 1–5 | Same as the Assembly | Dates often leave out the year; it's inferred |
+| Senate Budget highlights and reports | Committee home page | |
+| DOF trailer bill language | The trailer bill app's data feed (`trailerbill.dof.ca.gov/public/...`) | One item per proposal; a newer "last updated" date shows as an update and its PDF is read again |
+| Governor's Budget, May Revision, Enacted Budget | ebudget.ca.gov's data feed (`/api/home/getLink`, `/appInfo`) | The latest budget year; each with its full Budget Summary PDF |
+| DOF Finance Letters | Budget Details page, then each set's page | April 1 and May adjustments, one PDF per subject area |
+| LAO budget publications | lao.ca.gov/Budget | Publications from the last year |
+| LAO education publications | lao.ca.gov/Policy-Areas?areaId=4 | Publications from the last year; the HTML version is searched |
+
+The shared hearing pages (`abgt.assembly.ca.gov/hearings`, `sbud.senate.ca.gov/hearingagendas`)
+only point to the committee pages, so they aren't read separately.
 
 ### cde.ca.gov (SBE, ACCS, CPAG)
 
@@ -109,7 +135,35 @@ runner is no longer used.
   nothing. After 3 failures in a row, it shows a red badge in the dashboard and `ADMIN_EMAILS`
   get an email.
 - **Email:** each person chooses no email, a daily digest (about 7am Pacific), or immediate
-  alerts. They can also limit alerts to certain agencies, or to postings with keyword matches.
+  alerts. They can also limit alerts to education agencies or the budget (or both), to certain
+  agencies, or to postings with keyword matches. The daily digest also lists hearings on the team
+  calendar in the next 7 days and any source that needs attention.
+- **Notes:** anyone can add a note to a posting; everyone sees it. A note doesn't mark the posting
+  reviewed. You can edit or delete your own.
+
+### Budget-specific behavior
+
+- **Agenda items come from the agenda PDF.** Budget committees post agendas only as PDFs, so the
+  tracker reads each agenda's text and splits it into items: "Issue N" headings with their
+  department ("6100 · Issue 3"), a contents list of departments (vote-only agendas), a bill list
+  (bill hearings), or a numbered order of business. If none of these fit, the health page shows a
+  warning; the agenda's full text is still searched. A revised agenda (same link, new file) is
+  flagged as updated, with the changed items highlighted.
+- **Dates:** hearings are listed by hearing date; reports, bills and letters by their publication
+  or "last updated" date; anything without a date by when the tracker found it.
+- **First run:** past hearings and publications load as "Already posted". Committee pages list
+  hearings from about the last 13 months; LAO pages, publications from the last year.
+- **Document limits:** each run downloads at most 40 documents from each legislative site (and
+  fewer from DOF, ebudget and LAO), so a first run spreads its downloads over a few runs. Documents
+  that download late don't count as changes.
+- **Empty committee pages** (for example between sessions) show as a warning, not a failure.
+- **Hearing calendar:** on a hearing's page, or on the Calendar page, choose **Add to team calendar**.
+  Each person gets a private calendar address on the Calendar page and subscribes to it once in
+  Outlook (**Add calendar → Subscribe from web**). Events include the agenda items and links, and
+  update when Outlook next refreshes (usually within a few hours).
+- **Health page** (Budget → Health; Agencies for the education side): each source's last check,
+  how many postings it found, warnings and errors. Click a source to see its recent requests and
+  how many were accepted, by type (web pages, documents, data feeds).
 
 ## Setup
 
@@ -142,6 +196,18 @@ while trying it out), and create an API key.
 4. **Check agencies** runs on its schedule. To run it now, open **Actions → Check agencies →
    Run workflow**.
 
+### 4. Calendar feed (Outlook)
+1. Create a Supabase access token at https://supabase.com/dashboard/account/tokens.
+2. Add repository **secrets** `SUPABASE_ACCESS_TOKEN` (that token) and `SUPABASE_PROJECT_REF` (the
+   id in your project's URL, `https://<ref>.supabase.co`).
+3. Run **Actions → Deploy calendar feed → Run workflow**. It deploys
+   `supabase/functions/calendar` with JWT verification off (Outlook can't sign in; each person's
+   private token protects their feed) and sets the function's `DASHBOARD_URL` from the repository
+   variable, so events link back to the tracker.
+
+The feed address is `https://<ref>.supabase.co/functions/v1/calendar/<token>.ics`; each person
+gets theirs on the dashboard's Calendar page.
+
 ## Development
 
 ```bash
@@ -159,6 +225,8 @@ See what the scrapers find, without needing a database:
 ```bash
 python -m tracker run --no-db --agency sbe
 ```
+
+Only one program: `--program budget` (or `education`).
 
 Run the full pipeline against the database, then roll everything back (it prints any keyword
 matches):
@@ -181,6 +249,8 @@ and implements `fetch(fetcher) -> list[Posting]`. Register it with the `@registe
 and import the module at the bottom of `tracker/scrapers/__init__.py`.
 
 A scraper only describes what the listing page shows: postings, their items, and document
-links. The pipeline handles downloading, change detection, matching and alerts. Save a copy of
+links. Mark a hearing's agenda PDF with `DocLink(..., agenda=True)` and leave `items` empty to
+have the pipeline read the items from the agenda's text (`tracker/agenda.py`). Problems that
+shouldn't fail the check go in `self.warnings`, which the health page shows. The pipeline handles downloading, change detection, matching and alerts. Save a copy of
 the agency's page under `tests/fixtures/<agency>/` and test the scraper against it, so a site
 redesign shows up as a failing test rather than silently missing agendas.

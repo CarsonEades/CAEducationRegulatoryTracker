@@ -10,7 +10,7 @@ import sys
 import psycopg
 
 from tracker import notify, pipeline
-from tracker.agencies import AGENCIES
+from tracker.agencies import AGENCIES, PROGRAMS
 from tracker.http import Fetcher
 from tracker.scrapers import get_scraper
 
@@ -46,7 +46,8 @@ def cmd_run(args) -> int:
         unknown = [a for a in wanted + list(skip) if a not in {x.id for x in AGENCIES}]
         if unknown:
             sys.exit(f"unknown agency id(s): {', '.join(unknown)}")
-        selected = [a for a in (wanted or [x.id for x in AGENCIES]) if a not in skip]
+        everything = [x.id for x in AGENCIES if not args.program or x.program == args.program]
+        selected = [a for a in (wanted or everything) if a not in skip]
         if args.no_db:
             return preview(fetcher, selected)
         with connect() as conn:
@@ -198,6 +199,8 @@ def main(argv: list[str] | None = None) -> int:
                    help="comma-separated agency ids to check (same as repeating --agency)")
     r.add_argument("--exclude", default="",
                    help="comma-separated agency ids to skip (e.g. ones checked from another machine)")
+    r.add_argument("--program", choices=list(PROGRAMS),
+                   help="only agencies in this program (education or budget)")
     r.add_argument("--dry-run", action="store_true",
                    help="run against the database but roll everything back")
     r.add_argument("--no-db", action="store_true",
