@@ -133,6 +133,10 @@ def test_agenda_other_shapes():
     roman = agenda("sbud/agenda-sub1_3599.txt")
     assert [i.number for i in roman] == ["II", "III", "IV"]  # I. Welcome and V. Public Comment left out
     assert split_agenda("") == [] and split_agenda("Some text\nwithout items") == []
+    # A year at the start of a line isn't a department code.
+    yearly = split_agenda("6100 Department of Education\nIssue 2: Proposition 98\n2025 Budget Act\n"
+                          "Issue 3: Local Control Funding Formula")
+    assert [i.number for i in yearly] == ["6100 · Issue 2", "6100 · Issue 3"]
 
 
 def test_pipeline_reads_items_from_agenda_and_flags_revisions(conn, fetcher, monkeypatch):

@@ -47,6 +47,8 @@ def _department(line: str) -> tuple[str, str] | None:
     if not m:
         return None
     name = m[2].strip().rstrip(".").strip()
+    if 2000 <= int(m[1]) <= 2039:
+        return None  # a year ("2025 Budget Act"), not a department code
     if len(name.split()) > 10 or NOT_A_DEPARTMENT.search(name) or name.startswith(("The ", "and ")):
         return None
     return m[1], name

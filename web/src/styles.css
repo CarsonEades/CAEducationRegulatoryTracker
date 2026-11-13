@@ -139,3 +139,12 @@ table.agencies tr.details td { background: var(--bg); }
 table.compact { font-size: 0.85em; width: 100%; }
 table.compact td.url { word-break: break-all; }
 tr.bad-row td { color: var(--new); }
+
+@media (max-width: 640px) {
+  .topbar { gap: 8px 12px; }
+  .topbar nav { flex: 1 1 100%; order: 3; }
+  .segmented { flex-wrap: wrap; }
+  .segmented button { flex: 1 1 auto; }
+  .toolbar select { width: 100%; }
+  table.agencies { display: block; overflow-x: auto; }
+}
