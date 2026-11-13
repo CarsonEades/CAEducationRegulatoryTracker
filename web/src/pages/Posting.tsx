@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { supabase } from "../supabase";
-import type { Doc, Item, Keyword, Match, PostingRow, Review } from "../types";
-import { Highlight, StatusBadge, fmtDate, fmtDateTime, keywordRegex, must, useLoad } from "../util";
+import type { Doc, Item, Keyword, Match, Note, PostingRow, Review } from "../types";
+import {
+  Highlight, StatusBadge, dateLabel, fmtDate, fmtDateTime, fmtTime, keywordRegex, must, programPath, useLoad,
+} from "../util";
 import { type Changes, type Version, diff, isEmpty, snapshotAtReview } from "../changes";
 
 export default function PostingPage({ id, userId }: { id: number; userId: string }) {
@@ -9,7 +11,7 @@ export default function PostingPage({ id, userId }: { id: number; userId: string
   const [onlyHits, setOnlyHits] = useState(false);
 
   const { data, error, reload } = useLoad(async () => {
-    const [posting, items, docs, matches, reviews, keywords, versions] = await Promise.all([
+    const [posting, items, docs, matches, reviews, keywords, versions, notes] = await Promise.all([
       supabase.from("posting_status").select("*").eq("id", id).single(),
       supabase.from("items").select("*").eq("posting_id", id).order("position"),
       supabase.from("documents").select("id, item_position, url, label, fetch_error, text, sha256")
@@ -19,6 +21,8 @@ export default function PostingPage({ id, userId }: { id: number; userId: string
         .order("reviewed_at", { ascending: false }),
       supabase.from("keywords").select("*"),
       supabase.from("posting_versions").select("changed_at, snapshot").eq("posting_id", id),
+      supabase.from("posting_notes").select("*, profiles(email, display_name)").eq("posting_id", id)
+        .order("created_at"),
     ]);
     return {
       posting: must(posting) as PostingRow,
@@ -29,12 +33,14 @@ export default function PostingPage({ id, userId }: { id: number; userId: string
       keywords: must(keywords) as Keyword[],
       // Missing until the database has the history table; the page works without it.
       versions: versions.error ? null : (versions.data as Version[]),
+      // Likewise for shared notes (added with budget tracking).
+      notes: notes.error ? null : (notes.data as Note[]),
     };
   }, [id]);
 
   if (error) return <p className="error">{error}</p>;
   if (!data) return null;
-  const { posting: p, items, docs, matches, reviews, keywords, versions } = data;
+  const { posting: p, items, docs, matches, reviews, keywords, versions, notes } = data;
 
   const kwById = new Map(keywords.map((k) => [k.id, k]));
   // Only for "Updated since review": what changed since the last review.
@@ -58,6 +64,13 @@ export default function PostingPage({ id, userId }: { id: number; userId: string
     if (error) alert(error.message);
     else { setNote(""); reload(); }
   }
+  async function toggleCalendar() {
+    const { error } = p.on_calendar
+      ? await supabase.from("calendar_hearings").delete().eq("posting_id", id)
+      : await supabase.from("calendar_hearings").insert({ posting_id: id });
+    if (error) alert(error.message);
+    else reload();
+  }
   async function undo(reviewId: number) {
     const { error } = await supabase.from("reviews").delete().eq("id", reviewId);
     if (error) alert(error.message);
@@ -66,14 +79,30 @@ export default function PostingPage({ id, userId }: { id: number; userId: string
 
   return (
     <article className="posting">
-      <p><a href={`#/agency/${p.agency_id}`}>← {p.agency_name}</a></p>
+      <p>
+        <a href={programPath(p.program, `agency/${p.agency_id}`)}>
+          ← {p.group_name && !p.agency_name.startsWith(p.group_name.split(" ")[0]) ? `${p.group_name}: ` : ""}{p.agency_name}
+        </a>
+      </p>
       <h1><Highlight text={p.title} patterns={patterns} /></h1>
       <p className="row-meta">
         <StatusBadge status={p.status} />
-        {p.meeting_date && <span>{p.kind === "meeting" ? "Meeting" : "Dated"} {fmtDate(p.meeting_date)}</span>}
+        {p.meeting_date && (
+          <span>
+            {dateLabel(p.kind, p.program)} {fmtDate(p.meeting_date)}
+            {p.start_time && <>, {fmtTime(p.start_time)}</>}
+            {p.location && <> · {p.location}</>}
+          </span>
+        )}
         <span className="muted">First seen {fmtDateTime(p.first_seen_at)}</span>
         {p.last_changed_at !== p.first_seen_at && <span className="muted">Changed {fmtDateTime(p.last_changed_at)}</span>}
         {p.url && <a href={p.url} target="_blank" rel="noreferrer">Open on agency site ↗</a>}
+        {p.kind === "meeting" && p.on_calendar !== undefined && (
+          <button className="small secondary" onClick={toggleCalendar}
+                  title="Hearings on the team calendar appear in everyone's subscribed Outlook calendar">
+            {p.on_calendar ? "✓ On team calendar (remove)" : "Add to team calendar"}
+          </button>
+        )}
       </p>
 
       {p.status === "updated" && versions && (
@@ -97,6 +126,8 @@ export default function PostingPage({ id, userId }: { id: number; userId: string
           </ul>
         )}
       </section>
+
+      {notes && <Notes postingId={id} notes={notes} userId={userId} onChange={reload} />}
 
       {matches.length > 0 && (
         <section>
@@ -156,6 +187,75 @@ export default function PostingPage({ id, userId }: { id: number; userId: string
         </section>
       )}
     </article>
+  );
+}
+
+/** Shared notes: anyone on the team can read them; you can edit or delete your own. Adding a
+ *  note doesn't mark the posting reviewed. */
+function Notes({ postingId, notes, userId, onChange }: {
+  postingId: number; notes: Note[]; userId: string; onChange: () => void;
+}) {
+  const [body, setBody] = useState("");
+  const [editing, setEditing] = useState<number | null>(null);
+  const [editBody, setEditBody] = useState("");
+
+  async function add() {
+    if (!body.trim()) return;
+    const { error } = await supabase.from("posting_notes").insert({ posting_id: postingId, body: body.trim() });
+    if (error) alert(error.message);
+    else { setBody(""); onChange(); }
+  }
+  async function save(n: Note) {
+    const { error } = await supabase.from("posting_notes")
+      .update({ body: editBody.trim(), edited_at: new Date().toISOString() }).eq("id", n.id);
+    if (error) alert(error.message);
+    else { setEditing(null); onChange(); }
+  }
+  async function remove(n: Note) {
+    if (!confirm("Delete this note?")) return;
+    const { error } = await supabase.from("posting_notes").delete().eq("id", n.id);
+    if (error) alert(error.message);
+    else onChange();
+  }
+
+  return (
+    <section className="notes">
+      <h2>Team notes {notes.length > 0 && <span className="count">{notes.length}</span>}</h2>
+      {notes.length > 0 && (
+        <ul className="note-list">
+          {notes.map((n) => (
+            <li key={n.id}>
+              <div className="muted small-text">
+                <b>{n.profiles?.display_name || n.profiles?.email}</b> · {fmtDateTime(n.created_at)}
+                {n.edited_at && " (edited)"}
+                {n.user_id === userId && editing !== n.id && (
+                  <>
+                    <button className="link" onClick={() => { setEditing(n.id); setEditBody(n.body); }}>edit</button>
+                    <button className="link danger" onClick={() => remove(n)}>delete</button>
+                  </>
+                )}
+              </div>
+              {editing === n.id ? (
+                <div className="stack-tight">
+                  <textarea value={editBody} onChange={(e) => setEditBody(e.target.value)} />
+                  <div>
+                    <button className="small" onClick={() => save(n)} disabled={!editBody.trim()}>Save</button>{" "}
+                    <button className="small secondary" onClick={() => setEditing(null)}>Cancel</button>
+                  </div>
+                </div>
+              ) : (
+                <p className="note-body">{n.body}</p>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+      <div className="stack-tight">
+        <textarea placeholder="Add a note for the team (e.g. 'Issue 3 affects charter facility grants; flag for Monday')"
+                  value={body} onChange={(e) => setBody(e.target.value)} />
+        <div><button className="small" onClick={add} disabled={!body.trim()}>Add note</button></div>
+      </div>
+    </section>
   );
 }
 

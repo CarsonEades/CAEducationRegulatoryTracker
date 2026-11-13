@@ -65,3 +65,37 @@ def test_unsent_email_is_retried(conn, fetcher, monkeypatch):
 def test_send_email_without_config_does_nothing(monkeypatch):
     monkeypatch.delenv("RESEND_API_KEY", raising=False)
     assert notify.send_email(["x@example.org"], "s", "b") is False
+
+
+def test_digest_respects_programs_and_lists_calendar_hearings(conn, fetcher, monkeypatch):
+    sent = []
+    monkeypatch.setattr(notify, "send_email", lambda to, subj, body: sent.append((to, subj, body)) or True)
+    setup_posting(conn, fetcher, title="SBE November meeting")
+    mark_succeeded_before(conn, "abgt_sub3")
+    soon = dt.date.today() + dt.timedelta(days=2)
+    hearing = run_once(conn, fetcher, [nov_meeting(external_key="h", documents=[], meeting_date=soon,
+                                                   title="Sub 3 hearing: K-12")],
+                       agency="abgt_sub3").new[0]
+    conn.execute("insert into calendar_hearings (posting_id) values (%s)", (hearing,))
+    conn.execute("update agencies set last_note = 'agenda had no items' where id = 'abgt_sub3'")
+    budget = add_user(conn, "budget@example.org")
+    set_prefs(conn, budget, email_mode="daily", programs=["budget"])
+    education = add_user(conn, "edu@example.org")
+    set_prefs(conn, education, email_mode="daily", programs=["education"])
+
+    assert notify.send_user_alerts(conn, "daily") == 2
+    bodies = {to[0]: body for to, _, body in sent}
+    assert "Sub 3 hearing: K-12" in bodies["budget@example.org"]
+    assert "SBE November meeting" not in bodies["budget@example.org"]
+    assert "Hearings on the team calendar" in bodies["budget@example.org"]
+    assert "agenda had no items" in bodies["budget@example.org"]
+    assert "Sub 3 hearing" not in bodies["edu@example.org"]
+    assert "SBE November meeting" in bodies["edu@example.org"]
+
+    # Nothing new the next day, but the hearing is still coming up: the digest still goes
+    # to the budget user, and not to the education user.
+    sent.clear()
+    assert notify.send_user_alerts(conn, "daily") == 1
+    (to, subject, body), = sent
+    assert to == ["budget@example.org"] and "1 hearing(s) on the calendar" in subject
+    assert "No new or updated postings" in body

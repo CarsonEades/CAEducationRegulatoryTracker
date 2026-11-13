@@ -13,6 +13,9 @@ class DocLink:
     label: str | None = None
     # Index into Posting.items when the document belongs to one agenda item.
     item_index: int | None = None
+    # A hearing agenda whose text lists the agenda items (budget committees post agendas
+    # only as PDFs). The pipeline fills Posting.items from it when the scraper gives none.
+    agenda: bool = False
 
 
 @dataclass
@@ -27,7 +30,8 @@ class Posting:
     # Stable within the agency across runs (e.g. the meeting date or agenda URL).
     external_key: str
     title: str
-    kind: str = "meeting"  # meeting | opinion | initiative
+    kind: str = "meeting"  # meeting | opinion | initiative | publication
+    # For meetings, the meeting date; for publications, the publication or release date.
     meeting_date: dt.date | None = None
     url: str | None = None
     items: list[Item] = field(default_factory=list)
@@ -35,3 +39,6 @@ class Posting:
     # Listed, but its detail page wasn't re-read this run (an older meeting).
     # A stored posting is left as it is; a new one is stored from the listing.
     partial: bool = False
+    # Hearing time (Pacific) and place, when the listing gives them; used by the calendar.
+    start_time: dt.time | None = None
+    location: str | None = None

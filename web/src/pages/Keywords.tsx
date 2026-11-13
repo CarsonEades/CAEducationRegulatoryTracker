@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { supabase } from "../supabase";
-import type { Agency, Keyword } from "../types";
+import type { Agency, Keyword, Program } from "../types";
 import { must, useLoad } from "../util";
 
 const TYPE_HELP: Record<Keyword["match_type"], string> = {
@@ -9,8 +9,11 @@ const TYPE_HELP: Record<Keyword["match_type"], string> = {
   regex: "Regular expression (advanced)",
 };
 
-export default function Keywords() {
+const SCOPE_LABEL = { "": "Education and budget", education: "Education only", budget: "Budget only" } as const;
+
+export default function Keywords({ program }: { program: Program }) {
   const [term, setTerm] = useState("");
+  const [scope, setScope] = useState<"" | Program>(program === "budget" ? "budget" : "");
   const [matchType, setMatchType] = useState<Keyword["match_type"]>("word");
   const [agencyId, setAgencyId] = useState("");
   const [err, setErr] = useState<string | null>(null);
@@ -19,7 +22,7 @@ export default function Keywords() {
   const { data, error, reload } = useLoad(async () => {
     const [kw, ag, m] = await Promise.all([
       supabase.from("keywords").select("*").order("term"),
-      supabase.from("agencies").select("id, name, short_name").order("name"),
+      supabase.from("agencies").select("*").order("name"),
       supabase.from("matches").select("keyword_id, posting_id"),
     ]);
     const postings = new Map<number, Set<number>>();
@@ -35,8 +38,9 @@ export default function Keywords() {
     setSaving(true);
     setErr(null);
     // Saving also searches every stored agenda, so this can take a few seconds.
-    const { error } = await supabase.from("keywords")
-      .insert({ term: term.trim(), match_type: matchType, agency_id: agencyId || null });
+    const row: Record<string, unknown> = { term: term.trim(), match_type: matchType, agency_id: agencyId || null };
+    if (hasProgram) row.program = scope || null;
+    const { error } = await supabase.from("keywords").insert(row);
     setSaving(false);
     if (error) setErr(error.message);
     else { setTerm(""); reload(); }
@@ -53,13 +57,19 @@ export default function Keywords() {
 
   if (error) return <p className="error">{error}</p>;
   if (!data) return null;
+  // The program column arrives with the budget migration.
+  const hasProgram = data.agencies.some((a) => a.program !== undefined);
+  const agencyOptions = (only: "" | Program | null | undefined) => data.agencies
+    .filter((a) => !only || (a.program ?? "education") === only)
+    .map((a) => <option key={a.id} value={a.id}>{a.name}</option>);
 
   return (
     <>
       <h1>Keywords</h1>
       <p className="muted">
-        Keywords are matched against agenda titles, item text and linked documents. New keywords also search
-        everything already collected.
+        Keywords are matched against titles, agenda items and the text of linked documents. A keyword can
+        apply to the education agencies, the budget, or both, and optionally to a single source. New keywords
+        also search everything already collected.
       </p>
       <form className="keyword-form" onSubmit={add}>
         <input placeholder="e.g. charter, Prop 39, Acme Academy" value={term}
@@ -70,9 +80,14 @@ export default function Keywords() {
           <option value="phrase">Exact phrase</option>
           <option value="regex">Regex</option>
         </select>
+        {hasProgram && (
+          <select value={scope} onChange={(e) => { setScope(e.target.value as "" | Program); setAgencyId(""); }}>
+            {Object.entries(SCOPE_LABEL).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+          </select>
+        )}
         <select value={agencyId} onChange={(e) => setAgencyId(e.target.value)}>
-          <option value="">All agencies</option>
-          {data.agencies.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+          <option value="">All sources</option>
+          {agencyOptions(scope)}
         </select>
         <button disabled={saving}>{saving ? "Searching…" : "Add keyword"}</button>
       </form>
@@ -80,16 +95,24 @@ export default function Keywords() {
       {err && <p className="error">{err}</p>}
 
       <table>
-        <thead><tr><th>Keyword</th><th>Type</th><th>Agencies</th><th>Postings matched</th><th>Active</th><th /></tr></thead>
+        <thead><tr><th>Keyword</th><th>Type</th>{hasProgram && <th>Applies to</th>}<th>Source</th><th>Postings matched</th><th>Active</th><th /></tr></thead>
         <tbody>
           {data.keywords.map((k) => (
             <tr key={k.id} className={k.active ? "" : "inactive"}>
               <td><code>{k.term}</code></td>
               <td>{k.match_type}</td>
+              {hasProgram && (
+                <td>
+                  <select value={k.program ?? ""} onChange={(e) => update(k, { program: (e.target.value || null) as Program | null, agency_id: null })}>
+                    {Object.entries(SCOPE_LABEL).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                  </select>
+                </td>
+              )}
               <td>
                 <select value={k.agency_id ?? ""} onChange={(e) => update(k, { agency_id: e.target.value || null })}>
-                  <option value="">All agencies</option>
-                  {data.agencies.map((a) => <option key={a.id} value={a.id}>{a.short_name}</option>)}
+                  <option value="">All sources</option>
+                  {data.agencies.filter((a) => !k.program || (a.program ?? "education") === k.program)
+                    .map((a) => <option key={a.id} value={a.id}>{a.short_name}</option>)}
                 </select>
               </td>
               <td>{data.postings.get(k.id)?.size ?? 0}</td>

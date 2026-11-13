@@ -11,6 +11,7 @@ from dataclasses import dataclass, field
 
 import psycopg
 
+from tracker.agenda import split_agenda
 from tracker.agencies import AGENCIES, BY_ID
 from tracker.documents import FetchedDocument, fetch_document
 from tracker.http import Fetcher
@@ -46,6 +47,8 @@ def _check_every_hours() -> dict[str, float]:
 CHECK_EVERY_HOURS = _check_every_hours()
 # This many failed runs in a row flags an agency in the dashboard and emails an admin.
 FAILURE_ALERT_THRESHOLD = 3
+# Request log entries older than this are deleted at the start of each run.
+CRAWL_LOG_DAYS = 120
 
 
 class EmptyResult(Exception):
@@ -74,12 +77,15 @@ def sync_agencies(conn: psycopg.Connection) -> None:
 
     for a in AGENCIES:
         conn.execute(
-            """insert into agencies (id, name, short_name, url, scraper_ready)
-               values (%s, %s, %s, %s, %s)
+            """insert into agencies (id, name, short_name, url, scraper_ready, program, group_name,
+                 may_be_empty)
+               values (%s, %s, %s, %s, %s, %s, %s, %s)
                on conflict (id) do update set name = excluded.name,
                  short_name = excluded.short_name, url = excluded.url,
-                 scraper_ready = excluded.scraper_ready""",
-            (a.id, a.name, a.short_name, a.url, a.id in SCRAPERS),
+                 scraper_ready = excluded.scraper_ready, program = excluded.program,
+                 group_name = excluded.group_name, may_be_empty = excluded.may_be_empty""",
+            (a.id, a.name, a.short_name, a.url, a.id in SCRAPERS, a.program, a.group,
+             a.may_be_empty),
         )
 
 
@@ -88,6 +94,8 @@ def run(conn: psycopg.Connection, fetcher: Fetcher, agency_ids: list[str] | None
     """Scrape the given agencies (default: all) and commit after each one."""
     today = today or dt.date.today()
     sync_agencies(conn)
+    conn.execute("delete from crawl_log where requested_at < now() - make_interval(days => %s)",
+                 (CRAWL_LOG_DAYS,))
     conn.commit()
     results = []
     selected = agency_ids or [a.id for a in AGENCIES]
@@ -114,21 +122,31 @@ def run(conn: psycopg.Connection, fetcher: Fetcher, agency_ids: list[str] | None
             results.append(AgencyResult(agency_id, ok=True, skipped=True,
                                         note=f"checked at most every {hours:g} hours (CHECK_EVERY_HOURS)"))
             continue
-        results.append(run_agency(conn, fetcher, agency_id, scraper.fetch, today))
+        results.append(run_agency(conn, fetcher, agency_id, scraper.fetch, today,
+                                  warnings=getattr(scraper, "warnings", None)))
     return results
 
 
 def run_agency(conn: psycopg.Connection, fetcher: Fetcher, agency_id: str,
-               scrape, today: dt.date) -> AgencyResult:
+               scrape, today: dt.date, warnings: list[str] | None = None) -> AgencyResult:
+    """Scrape one agency and store its postings. `warnings` is a list the scraper appends
+    to while it runs (Scraper.warnings); they're shown on the health page."""
     last_success, last_count = conn.execute(
         "select last_success_at, last_posting_count from agencies where id = %s",
         (agency_id,),
     ).fetchone()
+    log_start = len(getattr(fetcher, "log", []))
+    warnings = warnings if warnings is not None else []
     try:
         postings = scrape(fetcher)
         if not postings and last_count:
-            raise EmptyResult(
-                f"found no postings (previously {last_count}); the page layout may have changed")
+            agency = BY_ID.get(agency_id)
+            if agency and agency.may_be_empty:
+                warnings.append(f"no postings listed (previously {last_count}); normal between "
+                                "sessions, otherwise check the page")
+            else:
+                raise EmptyResult(
+                    f"found no postings (previously {last_count}); the page layout may have changed")
         result = AgencyResult(agency_id, ok=True)
         first_run = last_success is None
         seen_keys = set()
@@ -137,7 +155,8 @@ def run_agency(conn: psycopg.Connection, fetcher: Fetcher, agency_id: str,
                 continue  # some pages list the same meeting twice
             seen_keys.add(p.external_key)
             baseline = first_run and not (p.meeting_date and p.meeting_date >= today)
-            outcome, posting_id = store_posting(conn, fetcher, agency_id, p, today, baseline)
+            outcome, posting_id = store_posting(conn, fetcher, agency_id, p, today, baseline,
+                                                warnings=warnings)
             if outcome == "new" and baseline:
                 result.baseline += 1
             elif outcome == "new":
@@ -146,12 +165,16 @@ def run_agency(conn: psycopg.Connection, fetcher: Fetcher, agency_id: str,
                 result.updated.append(posting_id)
             else:
                 result.unchanged += 1
+        note = "; ".join(dict.fromkeys(warnings))[:2000] or None
+        result.note = note
         conn.execute(
             """update agencies set last_checked_at = now(), last_success_at = now(),
-                 last_error = null, consecutive_failures = 0, last_posting_count = %s
+                 last_error = null, consecutive_failures = 0, last_posting_count = %s,
+                 last_note = %s
                where id = %s""",
-            (len(seen_keys), agency_id),
+            (len(seen_keys), note, agency_id),
         )
+        log_requests(conn, fetcher, agency_id, log_start)
         conn.commit()
         log.info("%s: %d new, %d updated, %d unchanged, %d already posted", agency_id,
                  len(result.new), len(result.updated), result.unchanged, result.baseline)
@@ -165,8 +188,31 @@ def run_agency(conn: psycopg.Connection, fetcher: Fetcher, agency_id: str,
                where id = %s returning consecutive_failures""",
             (f"{type(e).__name__}: {e}"[:2000], agency_id),
         ).fetchone()
+        log_requests(conn, fetcher, agency_id, log_start)
         conn.commit()
         return AgencyResult(agency_id, ok=False, error=str(e), consecutive_failures=failures)
+
+
+def log_requests(conn: psycopg.Connection, fetcher: Fetcher, agency_id: str, start: int) -> None:
+    """Write this agency's requests (fetcher.log[start:]) to crawl_log, with the gap since
+    the previous request to the same host from any run."""
+    records = getattr(fetcher, "log", [])[start:]
+    last: dict[str, dt.datetime | None] = {}
+    for r in records:
+        if r.host not in last:
+            last[r.host] = conn.execute(
+                "select max(requested_at) from crawl_log where host = %s and requested_at < %s",
+                (r.host, r.requested_at)).fetchone()[0]
+        prev = last[r.host]
+        gap = int((r.requested_at - prev).total_seconds()) if prev else None
+        conn.execute(
+            """insert into crawl_log (host, url, requested_at, gap_seconds, outcome, detail,
+                 origin, agency_id, request_type, status)
+               values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
+            (r.host, r.url[:2000], r.requested_at, gap, r.outcome, r.detail,
+             os.environ.get("TRACKER_ORIGIN", "local"), agency_id, r.request_type, r.status),
+        )
+        last[r.host] = r.requested_at
 
 
 def is_active(p: Posting, today: dt.date) -> bool:
@@ -196,20 +242,34 @@ def content_hash(p: Posting) -> str:
         "items": [[i.number, i.title, i.description] for i in p.items],
         "docs": sorted({d.url for d in p.documents}),
     }
+    # Added for budget hearings. Only hashed when set, so postings stored before these
+    # fields existed keep their hash and aren't flagged as changed.
+    if p.start_time is not None:
+        payload["time"] = p.start_time.isoformat()
+    if p.location:
+        payload["location"] = p.location
     return hashlib.sha256(json.dumps(payload, sort_keys=True).encode()).hexdigest()
 
 
 def store_posting(conn: psycopg.Connection, fetcher: Fetcher, agency_id: str, p: Posting,
                   today: dt.date, baseline: bool, fetch_docs: bool = True,
-                  skipped_doc_note: str | None = None) -> tuple[str, int]:
+                  skipped_doc_note: str | None = None,
+                  warnings: list[str] | None = None) -> tuple[str, int]:
     """Insert or update one posting. Returns ('new' | 'updated' | 'unchanged', id)."""
     _strip_nul_posting(p)
     row = conn.execute(
-        "select id, content_hash from postings where agency_id = %s and external_key = %s",
+        """select id, content_hash, is_baseline,
+                  exists (select 1 from items i where i.posting_id = postings.id),
+                  exists (select 1 from documents d where d.posting_id = postings.id
+                          and d.sha256 is null and d.fetch_error like '%%limit for%%')
+           from postings where agency_id = %s and external_key = %s""",
         (agency_id, p.external_key),
     ).fetchone()
-    posting_id, old_hash = row if row else (None, None)
-    if p.partial and posting_id is not None:
+    posting_id, old_hash, was_baseline, had_items, deferred_docs = \
+        row if row else (None, None, False, False, False)
+    # A listed posting whose details weren't re-read is left as stored, unless some of its
+    # documents are still waiting for a download that a per-site limit deferred.
+    if p.partial and posting_id is not None and not deferred_docs:
         conn.execute("update postings set last_seen_at = now() where id = %s", (posting_id,))
         return "unchanged", posting_id
 
@@ -229,7 +289,10 @@ def store_posting(conn: psycopg.Connection, fetcher: Fetcher, agency_id: str, p:
                 too_large.add(url)  # don't download a huge file again every run
 
     p.documents = p.documents[:MAX_DOCS_PER_POSTING]
-    refresh = posting_id is None or is_active(p, today)
+    # Re-download documents for new and recent meetings, and for a publication whose listing
+    # changed (e.g. DOF posting a revised trailer bill under the same address).
+    refresh = (posting_id is None or is_active(p, today)
+               or (p.kind == "publication" and content_hash(p) != old_hash))
     docs: dict[str, FetchedDocument] = {}
     fetched: set[str] = set()  # attempted this run
     revised = False      # a document we already had has new contents
@@ -256,11 +319,37 @@ def store_posting(conn: psycopg.Connection, fetcher: Fetcher, agency_id: str, p:
         else:
             docs[d.url] = FetchedDocument(prev_sha, prev_text)
 
+    # Budget hearing agendas are PDFs: their items come from the agenda's text (downloaded
+    # above, or the stored copy), so a revised agenda shows which items changed.
+    agendas = [d for d in p.documents if d.agenda]
+    late_items = False  # items read from an agenda whose text arrived for the first time
+    listing_hash = content_hash(p)  # what the scraper listed, before any items from agendas
+    if agendas and not p.items:
+        parts = [d for d in dict((d.url, d) for d in agendas).values()]
+        for n, d in enumerate(parts, 1):
+            text = docs[d.url].text
+            if not text:
+                continue
+            found = split_agenda(text)
+            if not found and warnings is not None:
+                warnings.append(f"no agenda items recognized in {d.label or d.url} "
+                                f"({p.meeting_date or p.title}); its text is still searched")
+            for item in found:
+                if len(parts) > 1:  # e.g. Part A and Part B, whose issue numbers overlap
+                    item.number = f"Part {n} · {item.number}" if item.number else f"Part {n}"
+                p.items.append(item)
+            if found and stored.get(d.url, (None, None))[0] is None:
+                late_items = True
+
     # The hash covers what the agenda lists (including which documents it links),
     # not document contents, so a document that downloads in a later run (or is
     # deferred by a per-site request limit) isn't mistaken for a change.
     new_hash = content_hash(p)
-    changed = posting_id is None or new_hash != old_hash or revised
+    # Items that only appear because an agenda finally downloaded (e.g. it was deferred by a
+    # per-site document limit) aren't a change to the agenda; store them quietly.
+    quiet_items = (posting_id is not None and late_items and not had_items
+                   and listing_hash == old_hash and not revised)
+    changed = posting_id is None or (new_hash != old_hash and not quiet_items) or revised
 
     if not changed and not first_text:
         conn.execute(
@@ -280,24 +369,29 @@ def store_posting(conn: psycopg.Connection, fetcher: Fetcher, agency_id: str, p:
     if posting_id is None:
         (posting_id,) = conn.execute(
             """insert into postings (agency_id, kind, external_key, title, meeting_date, url,
-                 content_hash, is_baseline)
-               values (%s, %s, %s, %s, %s, %s, %s, %s) returning id""",
+                 content_hash, is_baseline, start_time, location)
+               values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s) returning id""",
             (agency_id, p.kind, p.external_key, p.title, p.meeting_date, p.url,
-             new_hash, baseline),
+             new_hash, baseline, p.start_time, p.location),
         ).fetchone()
         outcome = "new"
     elif changed:
         conn.execute(
             """update postings set kind = %s, title = %s, meeting_date = %s, url = %s,
-                 content_hash = %s, last_changed_at = clock_timestamp(), last_seen_at = now()
+                 content_hash = %s, last_changed_at = clock_timestamp(), last_seen_at = now(),
+                 start_time = %s, location = %s
                where id = %s""",
-            (p.kind, p.title, p.meeting_date, p.url, new_hash, posting_id),
+            (p.kind, p.title, p.meeting_date, p.url, new_hash, p.start_time, p.location,
+             posting_id),
         )
         outcome = "updated"
     else:
         outcome = "unchanged"  # only newly downloaded text; decided after matching below
 
-    if changed:
+    if quiet_items:
+        conn.execute("update postings set content_hash = %s, last_seen_at = now() where id = %s",
+                      (new_hash, posting_id))
+    if changed or quiet_items:
         conn.execute("delete from items where posting_id = %s", (posting_id,))
         for pos, item in enumerate(p.items):
             conn.execute(
@@ -329,13 +423,25 @@ def store_posting(conn: psycopg.Connection, fetcher: Fetcher, agency_id: str, p:
 
     before = _match_keys(conn, posting_id)
     conn.execute("select rematch(%s, null)", ([posting_id],))
-    if outcome == "unchanged" and _match_keys(conn, posting_id) - before:
-        # A late-arriving document produced a new keyword hit: worth flagging.
+    new_hit = outcome == "unchanged" and bool(_match_keys(conn, posting_id) - before)
+    if new_hit and (not was_baseline or is_active(p, today)):
+        # A late-arriving document produced a new keyword hit: worth flagging. (Not for
+        # older postings loaded quietly on a source's first run, whose documents can arrive
+        # over several runs.)
         conn.execute(
             "update postings set last_changed_at = clock_timestamp(), last_seen_at = now() where id = %s",
             (posting_id,),
         )
         outcome = "updated"
+    elif quiet_items or new_hit:
+        # Not a change, but keep the latest history snapshot complete (items and matches), so
+        # a later revision is compared with what the agenda really said.
+        conn.execute(
+            """insert into posting_versions (posting_id, changed_at, snapshot)
+               select id, last_changed_at, posting_snapshot(id) from postings where id = %s
+               on conflict (posting_id, changed_at) do update set snapshot = excluded.snapshot""",
+            (posting_id,),
+        )
 
     if outcome != "unchanged" and not baseline:
         conn.execute(

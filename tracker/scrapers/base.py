@@ -15,6 +15,11 @@ class Scraper(ABC):
     #: Matches tracker.agencies.Agency.id
     agency_id: str
 
+    def __init__(self) -> None:
+        # Problems worth showing on the health page that don't fail the check, e.g. an
+        # agenda PDF where no items could be found. Filled in during fetch().
+        self.warnings: list[str] = []
+
     @abstractmethod
     def fetch(self, fetcher: Fetcher) -> list[Posting]:
         """Return the postings currently listed on the agency's site."""

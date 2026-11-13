@@ -114,3 +114,37 @@ tr.inactive td { opacity: 0.5; }
 @media (max-width: 700px) {
   table { display: block; overflow-x: auto; }
 }
+
+/* Budget tracking */
+.program-switch a { padding: 4px 10px; text-decoration: none; color: var(--text); background: var(--panel); }
+.program-switch a.on { background: var(--accent); color: #fff; }
+.group h3 { font-size: 1rem; margin: 1em 0 0.4em; }
+.group h3 .count { color: var(--muted); font-weight: normal; font-size: 0.85em; }
+.group h2.group-name { margin-top: 1.6em; border-bottom: 1px solid var(--line); padding-bottom: 4px; }
+.badge.cal { background: var(--ok-bg); color: var(--ok); }
+button.secondary { background: var(--panel); color: var(--accent); }
+.notes h2 .count { color: var(--muted); font-weight: normal; font-size: 0.85em; }
+ul.note-list { list-style: none; padding: 0; margin: 0 0 10px; }
+ul.note-list li { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px;
+  margin-bottom: 8px; }
+.note-body { margin: 4px 0 0; white-space: pre-wrap; }
+.stack-tight { display: flex; flex-direction: column; gap: 6px; }
+.stack-tight textarea { min-height: 60px; }
+.feed-url { display: flex; gap: 8px; }
+.feed-url input { flex: 1; min-width: 0; font-family: ui-monospace, monospace; font-size: 0.85em; }
+table.agencies tr.group-row th { text-align: left; padding-top: 16px; font-size: 1rem; }
+table.agencies tr.clickable { cursor: pointer; }
+table.agencies tr.details td { background: var(--bg); }
+.request-log .stat { margin-right: 14px; }
+table.compact { font-size: 0.85em; width: 100%; }
+table.compact td.url { word-break: break-all; }
+tr.bad-row td { color: var(--new); }
+
+@media (max-width: 640px) {
+  .topbar { gap: 8px 12px; }
+  .topbar nav { flex: 1 1 100%; order: 3; }
+  .segmented { flex-wrap: wrap; }
+  .segmented button { flex: 1 1 auto; }
+  .toolbar select { width: 100%; }
+  table.agencies { display: block; overflow-x: auto; }
+}

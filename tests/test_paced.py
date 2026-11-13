@@ -264,11 +264,23 @@ def test_migrations_apply_on_top_of_hand_applied_schema(conn):
     # nothing recorded, later ones not applied yet.
     conn.execute("drop table crawl_log, crawl_state, posting_versions")
     conn.execute("drop function record_posting_version, posting_snapshot cascade")
+    # Undo the budget migration too (its enum value can't be removed; it's added with
+    # "if not exists").
+    conn.execute("drop view posting_status")
+    conn.execute("drop table posting_notes, calendar_hearings, calendar_feeds")
+    conn.execute("drop function calendar_ics, ics_fold, ics_escape, search_all")
+    conn.execute("alter table agencies drop column program, drop column group_name, "
+                 "drop column may_be_empty, drop column last_note")
+    conn.execute("alter table postings drop column start_time, drop column location")
+    conn.execute("delete from keywords where program is not null")
+    conn.execute("alter table keywords drop column program cascade")  # and its trigger
+    conn.execute("alter table user_prefs drop column programs")
     conn.commit()
     conn.execute("drop table if exists schema_migrations")
     conn.commit()
     later = ["20261031000001_paced_crawling.sql", "20261102000001_crawl_log_origin.sql",
-             "20261105000001_posting_versions.sql"]
+             "20261105000001_posting_versions.sql", "20261113000001_publication_kind.sql",
+             "20261113000002_budget.sql"]
     assert migrate(conn) == later
     names = {r[0] for r in conn.execute("select name from schema_migrations")}
     assert names == {"20261030000001_init.sql", *later}

@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import datetime as dt
 import os
 import time
+from dataclasses import dataclass
 from urllib.parse import urlsplit
 
 import httpx
@@ -34,8 +36,50 @@ def _cde_budget() -> int:
 
 
 HOST_BUDGETS = {"www.cde.ca.gov": _cde_budget()}
+# Most documents (PDFs etc.) downloaded from a host per run. A source's first run lists
+# a year or more of agendas and reports; this spreads those downloads over several runs
+# instead of hitting a site with hundreds of requests at once. Documents past the limit
+# are downloaded in a later run.
+HOST_DOC_BUDGETS = {
+    "abgt.assembly.ca.gov": 40,
+    "sbud.senate.ca.gov": 40,
+    "trailerbill.dof.ca.gov": 40,
+    "dof.ca.gov": 20,
+    "ebudget.ca.gov": 10,
+    "www.lao.ca.gov": 30,
+}
 # Bot-protection services some agency sites redirect to instead of serving the page.
 CHALLENGE_HOSTS = ("validate.perfdrive.com",)
+
+
+DOCUMENT_TYPES = ("pdf", "msword", "officedocument", "powerpoint", "excel", "octet-stream")
+DOCUMENT_EXTS = (".pdf", ".doc", ".docx", ".ppt", ".pptx", ".xls", ".xlsx")
+
+
+def request_type(url: str, content_type: str | None = None) -> str:
+    """'document', 'api' or 'page': sites often treat these differently (cde.ca.gov's bot
+    protection checks web pages but not documents), so the health page breaks them down."""
+    ctype = (content_type or "").lower()
+    path = urlsplit(url).path.lower()
+    if any(t in ctype for t in DOCUMENT_TYPES) or path.endswith(DOCUMENT_EXTS) or "/pdf/" in path:
+        return "document"
+    if "json" in ctype or "/api/" in path or path.startswith("/public/"):
+        return "api"
+    if not ctype and "/media/" in path:
+        return "document"  # the legislature's /media/N links redirect to files
+    return "page"
+
+
+@dataclass
+class RequestRecord:
+    """One request as the site saw it, for crawl_log (time, outcome, type, status)."""
+    url: str
+    host: str
+    requested_at: dt.datetime
+    request_type: str
+    outcome: str            # ok | challenged | error
+    status: int | None = None
+    detail: str | None = None
 
 
 class FetchError(Exception):
@@ -56,7 +100,10 @@ class Fetcher:
         self.retries = retries
         self._last_hit: dict[str, float] = {}
         self._count: dict[str, int] = {}
+        self._doc_count: dict[str, int] = {}
         self._blocked: set[str] = set()
+        # Every request this run, in order; the pipeline writes them to crawl_log.
+        self.log: list[RequestRecord] = []
         self.client = httpx.Client(
             headers={"User-Agent": USER_AGENT},
             follow_redirects=True,
@@ -77,6 +124,7 @@ class Fetcher:
         if wait > 0:
             time.sleep(wait)
         self._last_hit[host] = time.monotonic()
+        self._sent_at = dt.datetime.now(dt.timezone.utc)  # when the request actually went out
 
     def get(self, url: str) -> httpx.Response:
         """GET with retries; the body is capped at MAX_BYTES."""
@@ -91,12 +139,39 @@ class Fetcher:
             raise BlockedError(f"{host} challenged an earlier request this run; skipping {url}")
         if self._count.get(host, 0) >= HOST_BUDGETS.get(host, 10**9):
             raise BudgetExceeded(f"request limit for {host} reached this run; will retry next run")
+        if request_type(url) == "document":
+            if self._doc_count.get(host, 0) >= HOST_DOC_BUDGETS.get(host, 10**9):
+                raise BudgetExceeded(f"document limit for {host} reached this run; "
+                                     "will download in a later run")
+            self._doc_count[host] = self._doc_count.get(host, 0) + 1
         self._count[host] = self._count.get(host, 0) + 1
+        self._sent_at = dt.datetime.now(dt.timezone.utc)
         try:
-            return self._request(method, url, **kwargs)
-        except BlockedError:
+            resp = self._request(method, url, **kwargs)
+        except BlockedError as e:
             self._blocked.add(host)
+            self._record(url, host, self._sent_at, "challenged", None, None, str(e))
             raise
+        except FetchError as e:
+            status = None
+            if str(e).startswith("HTTP "):
+                try:
+                    status = int(str(e).split()[1])
+                except ValueError:
+                    pass
+            self._record(url, host, self._sent_at, "error", status, None, str(e))
+            raise
+        final = str(resp.request.url) if resp.request is not None else url
+        redirect = f"redirected to {urlsplit(final).netloc}" if urlsplit(final).netloc != host else None
+        self._record(url, host, self._sent_at, "ok", resp.status_code,
+                     resp.headers.get("content-type"), redirect)
+        return resp
+
+    def _record(self, url, host, started, outcome, status, content_type, detail) -> None:
+        self.log.append(RequestRecord(url=url, host=host, requested_at=started,
+                                      request_type=request_type(url, content_type),
+                                      outcome=outcome, status=status,
+                                      detail=(detail or None) and detail[:500]))
 
     def _request(self, method: str, url: str, **kwargs) -> httpx.Response:
         last: Exception | None = None
