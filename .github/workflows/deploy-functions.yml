@@ -36,7 +36,8 @@ jobs:
             echo "::notice title=Calendar feed not deployed::Add the SUPABASE_ACCESS_TOKEN and SUPABASE_PROJECT_REF repository secrets, then run this workflow again."
             exit 0
           fi
+          # --yes: newer CLI versions ask for confirmation, which a workflow can't answer.
           if [ -n "$DASHBOARD_URL" ]; then
-            supabase secrets set "DASHBOARD_URL=$DASHBOARD_URL" --project-ref "$PROJECT_REF"
+            supabase secrets set "DASHBOARD_URL=$DASHBOARD_URL" --project-ref "$PROJECT_REF" --yes
           fi
-          supabase functions deploy calendar --no-verify-jwt --project-ref "$PROJECT_REF"
+          supabase functions deploy calendar --no-verify-jwt --project-ref "$PROJECT_REF" --yes
